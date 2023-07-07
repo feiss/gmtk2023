@@ -1,0 +1,18 @@
+/* Diego F. Goberna - http://diegofg.com - GMTK 2023 */
+
+body {
+    font: 14px 'pixelfont';
+    height: 100vh;
+}
+
+#preload_font {
+    font: 14px 'pixelfont';
+    color: white;
+    display: none;
+}
+
+canvas {
+    image-rendering: pixelated;
+    display: block;
+    margin: 10px auto;
+}

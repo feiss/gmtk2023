@@ -1,0 +1,40 @@
+<!-- Diego F. Goberna - http://diegofg.com - GMTK 2023 -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game</title>
+
+    <style>
+        @font-face {
+            font-family: 'pixelfont';
+            src: url('assets/Silkscreen-Regular.ttf') format('truetype');
+        }
+
+        :root {
+            --SCALE: 2;
+        }
+
+        body {
+            background-color: black;
+            overflow: hidden;
+            padding: 2rem;
+        }
+    </style>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+
+<body>
+    <div id="spriter_canvas"></div>
+    <div id="preload_font">.</div>
+    <script src="src/math.js"></script>
+    <script src="src/canvas.js"></script>
+    <script src="src/engine.js"></script>
+
+    <script src="game.js"></script>
+</body>
+
+</html>
