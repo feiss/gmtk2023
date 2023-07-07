@@ -1,3 +1,4 @@
+// Diego F. Goberna - http://diegofg.com - GMTK 2023
 
 function distance(x1, y1, x2, y2) {
     const dx = x2 - x1;
