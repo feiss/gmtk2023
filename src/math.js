@@ -6,7 +6,7 @@ function distance(x1, y1, x2, y2) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-function a(x1, y1, x2, y2) {
+function angle(x1, y1, x2, y2) {
     const dx = x2 - x1;
     const dy = y2 - y1;
     return Math.atan2(dy, dx);
@@ -16,7 +16,7 @@ function lerp(a, b, t) {
     return a + (b - a) * t;
 }
 
-class Point {
+class Vec {
     constructor(x, y) {
         this.x = x;
         this.y = y;
@@ -24,7 +24,7 @@ class Point {
     }
 
     static from_angle(a, m) {
-        return new Point(cos(a) * m, sin(a) * m);
+        return new Vec(cos(a) * m, sin(a) * m);
     }
 
     set(x, y) {
@@ -34,7 +34,7 @@ class Point {
     }
 
     clone() {
-        return new Point(this.x, this.y);
+        return new Vec(this.x, this.y);
     }
 
     add(p) {
@@ -105,7 +105,7 @@ class Point {
     lerp(p, t) {
         const x = this.x + (p.x - this.x) * t;
         const y = this.y + (p.y - this.y) * t;
-        return new Point(x, y);
+        return new Vec(x, y);
     }
 
     normalize() {
