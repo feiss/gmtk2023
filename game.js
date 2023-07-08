@@ -160,7 +160,7 @@ function restart() {
     game_speed = 1;
 
     player = {
-        pos: new Vec(740, 150),
+        pos: new Vec(100, 150),
         speed: new Vec(0, 0),
         on_air: false,
         look_right: true,
@@ -233,7 +233,7 @@ function update_player(dt) {
     }
 
     if (!is_sky(hit_corner_top_left) || !is_sky(hit_corner_top_right)) {
-        player.speed.y = 1;
+        player.speed.y = 33;
         let block;
 
         if (is_breakable(hit_corner_top_left)) {
