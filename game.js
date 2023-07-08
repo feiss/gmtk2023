@@ -11,7 +11,8 @@ function preload() {
         "block_q.png",
         "enemy_a1.png",
         "enemy_a2.png",
-        "enemy_b.png",
+        "enemy_b1.png",
+        "enemy_b2.png",
         "pipe1.png",
         "pipe2.png",
         "pipe3.png",
@@ -53,6 +54,7 @@ function load_map(path) {
             const color = c.pget(x, y);
             switch (color) {
                 case 19: add_map_item('enemy', 'a', x, y); col[y] = 6; break;
+                case 20: add_map_item('enemy', 'b', x, y); col[y] = 6; break;
                 default: col[y] = color;
             }
 
@@ -131,7 +133,7 @@ let player, enemies;
 function restart() {
     gameover = false;
     player = {
-        pos: new Vec(100, 100),
+        pos: new Vec(100, 150),
         speed: new Vec(0, 0),
         on_air: false,
         look_right: true,
@@ -154,7 +156,8 @@ function restart() {
 
     }
 
-    new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } });
+    new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } }, 0.5, 1);
+    new_sprite('b', { 'count': { frames: ['enemy_b1.png', 'enemy_b2.png'], fps: 2 } }, 0.5, 1);
 }
 
 function update_player() {
@@ -283,10 +286,11 @@ function draw_enemies() {
     for (let i = 0; i < enemies.length; i++) {
         const enemy = enemies[i];
 
-        const x = floor(enemy.pos.x - scroll * TILE - TILE2);
-        const y = floor(enemy.pos.y - TILE + 1);
-
-        canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
+        const x = floor(enemy.pos.x - scroll * TILE);
+        const y = floor(enemy.pos.y);
+        if (x > -TILE && x < W + TILE && y < H + TILE * 2) {
+            canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
+        }
     }
 }
 
@@ -300,6 +304,7 @@ function loop(t, dt) {
     canvas.fill_rect(0, 0, W, H, 6);
 
     update_sprite('a', dt);
+    update_sprite('b', dt);
 
     update_enemies(dt);
     update_player();
