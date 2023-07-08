@@ -8,12 +8,20 @@ function preload() {
         "pepe_run1.png",
         "pepe_run2.png",
         "pepe_run3.png",
+        "block_break1.png",
+        "block_break2.png",
         "block_a.png",
         "block_b.png",
         "block_c.png",
-        "block_q.png",
+        "block_q1.png",
+        "block_q2.png",
+        "block_q3.png",
+        "block_q_dead.png",
         "enemy_a1.png",
         "enemy_a2.png",
+        "enemy_a_life1.png",
+        "enemy_a_life2.png",
+        "enemy_a_life3.png",
         "enemy_a_dead.png",
         "enemy_b1.png",
         "enemy_b2.png",
@@ -22,16 +30,21 @@ function preload() {
         "pipe2.png",
         "pipe3.png",
         "pipe4.png",
+        "coin1.png",
+        "coin2.png",
+        "coin3.png",
+        "heart.png",
     ];
 }
 
 let map;
-let map_items = [];
+let map_items;
 let map_size;
 
 const is_sky = idx => idx == 6 || idx == 1 || idx == 2;
 const is_floor = idx => idx == 32 || idx == 4;
-const is_breakable = idx => idx == 36;
+const is_hitable = idx => idx == 36 || idx == 35;
+const is_coin = idx => idx == 35;
 
 function loading(progress) {
     canvas.fill_rect(10, H / 2, floor(progress * (W - 20)), 1, 3);
@@ -47,6 +60,7 @@ function add_map_item(type, subtype, x, y) {
 }
 
 function load_map(path) {
+    map_items = [];
     let img = assets[path];
     let c = new Canvas(img.width, img.height, 1);
     c.canvas.style.display = 'none';
@@ -76,10 +90,13 @@ let mapH = floor(H / TILE);
 let gameover = false;
 let gameover_t = 0;
 let game_speed = 1;
+let gameover_msg;
 
 const MAP_TILE = new Array(100);
 MAP_TILE[32] = 'block_c.png';
 MAP_TILE[4] = 'block_b.png';
+MAP_TILE[35] = 'block_q';
+MAP_TILE[99] = 'block_q_dead.png';
 MAP_TILE[36] = 'block_a.png';
 MAP_TILE[39] = 'pipe1.png';
 MAP_TILE[40] = 'pipe2.png';
@@ -98,6 +115,7 @@ function draw_map() {
             const xx = x + map_scroll;
             const img = MAP_TILE[map[xx][y]];
 
+
             if (player.block) {
                 if (player.block.x == xx && player.block.y == y && player.block_time > 0) {
                     player.block_time -= 1;
@@ -109,7 +127,11 @@ function draw_map() {
             }
 
             if (img) {
-                canvas.draw_image(img,
+                let draw_func = canvas.draw_image.bind(canvas);
+                if (img.indexOf('.png') == -1) {
+                    draw_func = canvas.draw_sprite.bind(canvas);
+                }
+                draw_func(img,
                     floor((x - scroll_frac) * TILE + offset.x),
                     floor(y * TILE + offset.y));
             }
@@ -135,8 +157,10 @@ function start() {
     new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } }, 0.5, 1);
     new_sprite('b', { 'count': { frames: ['enemy_b1.png', 'enemy_b2.png'], fps: 2 } }, 0.5, 1);
     new_sprite('run', { 'count': { frames: ['pepe_run1.png', 'pepe_run2.png', 'pepe_run3.png'], fps: 0.3 } });
+    new_sprite('block_q', { 'count': { frames: ['block_q1.png', 'block_q2.png', 'block_q3.png', 'block_q2.png', 'block_q1.png', 'block_q1.png'], fps: 7 } });
+    new_sprite('block_break', { 'count': { frames: ['block_break1.png', 'block_break2.png'], fps: 10 } }, 0.5, 0.5);
+    new_sprite('coin', { 'count': { frames: ['coin1.png', 'coin2.png', 'coin3.png', 'coin2.png'], fps: 10 } }, 0.5, 1);
 
-    load_map("map1-1.png");
     restart();
 }
 
@@ -148,16 +172,21 @@ const PLAYER_JUMP_SPEED = 266.0;
 const MEGAJUMP_FRAME_CHECK = 11;
 const GRAVITY = 1200;
 
-const GOOMBA_SPEED = 20.0;
+const GOOMBA_SPEED = 10.0;
 const BRICK_SHAKE_TIME = 8;
 
-let player, enemies;
+let player, enemies, extras;
 
 
 function restart() {
+
+    load_map("map1-1.png");
+
+
     gameover = false;
     gameover_t = 0;
     game_speed = 1;
+    gameover_msg = "GAME OVER";
 
     player = {
         pos: new Vec(100, 150),
@@ -168,8 +197,11 @@ function restart() {
         block: null,
         block_time: 0,
         points: 0,
+        wants_to_pick: false,
+        inventory: null,
     };
 
+    extras = [];
     enemies = [];
     for (let i = 0; i < map_items.length; i++) {
         const item = map_items[i];
@@ -180,11 +212,53 @@ function restart() {
                     pos: item.pos,
                     speed: -GOOMBA_SPEED,
                     alive: true,
+                    life: 3,
                 });
                 break;
         }
 
     }
+}
+
+function add_extra(type, x, y, sx, sy, life) {
+    extras.push({
+        type: type,
+        pos: new Vec(x, y),
+        speed: new Vec(sx, sy),
+        life: life,
+    });
+}
+
+function keydown(key) {
+    if (key == ' ') {
+        if (player.inventory) {
+            const dir = player.look_right ? 1 : -1;
+            add_extra(player.inventory, player.pos.x, player.pos.y - TILE, dir * 100 + player.speed.x, player.speed.y - 100);
+            player.inventory = null;
+        } else {
+            player.wants_to_pick = true;
+        }
+    }
+}
+
+
+function hit_block(block) {
+    let kind = map[block.x][block.y];
+    if (is_coin(kind)) {
+        player.block = block;
+        player.block_time = BRICK_SHAKE_TIME;
+        player.points += 50;
+        add_extra('coin', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(200 + Math.random() * 100));
+
+        map[block.x][block.y] = 99;
+    } else if (is_hitable(kind)) {
+        for (let i = 0; i < 4; i++) {
+            add_extra('block_break', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(100 + Math.random() * 300));
+            map[block.x][block.y] = 6;
+        }
+        player.points += 50;
+    }
+
 
 }
 
@@ -213,14 +287,14 @@ function update_player(dt) {
 
     player.pos.x = clamp(player.pos.x, TILE2 + 1, map_size.x * TILE - TILE2 - 1);
 
-    const hit_corner_bottom_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y));
-    const hit_corner_bottom_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y));
-    const hit_corner_top_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - TILE));
-    const hit_corner_top_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y - TILE));
-    const hit_top_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - TILE + 4));
-    const hit_top_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y - TILE + 4));
-    hit_bottom_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y - 4));
-    hit_bottom_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - 4));
+    const hit_corner_bottom_left = get_map_at(new Vec(player.pos.x - TILE2 + 3, player.pos.y));
+    const hit_corner_bottom_right = get_map_at(new Vec(player.pos.x + TILE2 - 3, player.pos.y));
+    const hit_corner_top_left = get_map_at(new Vec(player.pos.x - TILE2 + 3, player.pos.y - TILE));
+    const hit_corner_top_right = get_map_at(new Vec(player.pos.x + TILE2 - 3, player.pos.y - TILE));
+    const hit_top_left = get_map_at(new Vec(player.pos.x - TILE2 + 3, player.pos.y - TILE + 4));
+    const hit_top_right = get_map_at(new Vec(player.pos.x + TILE2 - 3, player.pos.y - TILE + 4));
+    hit_bottom_right = get_map_at(new Vec(player.pos.x + TILE2 + 3, player.pos.y - 4));
+    hit_bottom_left = get_map_at(new Vec(player.pos.x - TILE2 - 3, player.pos.y - 4));
 
 
     if (player.pos.y >= H || (is_sky(hit_corner_bottom_left) && is_sky(hit_corner_bottom_right))) {
@@ -232,19 +306,20 @@ function update_player(dt) {
         player.on_air = false;
     }
 
-    if (!is_sky(hit_corner_top_left) || !is_sky(hit_corner_top_right)) {
-        player.speed.y = 33;
-        let block;
+    if (player.speed.y < 0) {
 
-        if (is_breakable(hit_corner_top_left)) {
-            block = new Vec(player.pos.x - TILE2, player.pos.y - TILE).div(TILE).floor();
-        } else if (is_breakable(hit_corner_top_right)) {
-            block = new Vec(player.pos.x + TILE2, player.pos.y - TILE).div(TILE).floor();
-        }
-        if (!player.block || !player.block.equals_to(block)) {
-            player.block = block;
-            player.block_time = BRICK_SHAKE_TIME;
-            player.points += 50;
+        if (!is_sky(hit_corner_top_left) || !is_sky(hit_corner_top_right)) {
+            player.speed.y = 33;
+            let block;
+
+            if (is_hitable(hit_corner_top_left)) {
+                block = new Vec(player.pos.x - TILE2, player.pos.y - TILE).div(TILE).floor();
+            } else if (is_hitable(hit_corner_top_right)) {
+                block = new Vec(player.pos.x + TILE2, player.pos.y - TILE).div(TILE).floor();
+            }
+            if (block && (!player.block || !player.block.equals_to(block))) {
+                hit_block(block);
+            }
         }
     }
 
@@ -290,9 +365,16 @@ function draw_player(dt) {
         } else {
             canvas.draw_sprite('run', x, y, flip);
             update_sprite('run', Math.abs(player.speed.x * dt));
-
         }
     }
+
+    if (player.inventory) {
+        canvas.draw_sprite(player.inventory, x + (flip ? 0 : TILE), y + TILE2);
+    }
+}
+
+function pick(spr) {
+    player.inventory = spr.type;
 }
 
 
@@ -301,7 +383,7 @@ function update_enemies(t, dt) {
         const enemy = enemies[i];
         if (!enemy.alive) continue;
 
-        enemy.pos.x += enemy.speed * dt;
+        enemy.pos.x += enemy.speed * enemy.life * dt;
 
         if (enemy.pos.y >= H) {
             enemy.pos.y += 1;
@@ -321,15 +403,37 @@ function update_enemies(t, dt) {
             }
 
             // check player
-            if (enemy.pos.distance(player.pos) < TILE) {
+            const distance = enemy.pos.distance(player.pos);
+            if (distance < TILE * 1.2) {
                 if (abs(enemy.pos.y - player.pos.y) > abs(enemy.pos.x - player.pos.x)) {
                     enemy.alive = false;
                     player.speed.y = -PLAYER_JUMP_SPEED * 0.75;
                 } else {
-                    gameover = true;
+                    if (distance < TILE * 0.8)
+                        gameover = true;
                     gameover_t = t;
                 }
             }
+
+            if (check_inside_screen(enemy.pos.x - scroll * TILE, enemy.pos.y)) {
+                enemy.life -= dt * 0.1;
+                if (enemy.life < 1) {
+                    enemy.alive = false;
+                }
+            }
+
+            for (let e = 0; e < extras.length; e++) {
+                const extra = extras[e];
+                const distance = enemy.pos.distance(extra.pos);
+                if (distance < TILE) {
+                    player.points += 200;
+                    enemy.life++;
+                    add_extra('heart.png', enemy.pos.x - TILE2, enemy.pos.y - TILE * 1.5, 0, -50, 1);
+                    extras.splice(e, 1);
+                    break;
+                }
+            }
+
 
         }
         if (enemy.pos.y > H + 30) {
@@ -339,15 +443,23 @@ function update_enemies(t, dt) {
     }
 }
 
+function check_inside_screen(x, y) {
+    return x > -TILE && x < W + TILE && y < H + TILE * 2;
+}
+
 function draw_enemies() {
     for (let i = 0; i < enemies.length; i++) {
         const enemy = enemies[i];
 
         const x = floor(enemy.pos.x - scroll * TILE);
         const y = floor(enemy.pos.y);
-        if (x > -TILE && x < W + TILE && y < H + TILE * 2) {
+        if (check_inside_screen(x, y)) {
             if (enemy.alive) {
                 canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
+                if (enemy.type == 'a') {
+                    const life = floor(enemy.life);
+                    canvas.draw_image('enemy_' + enemy.type + '_life' + life + '.png', x - TILE2, y - TILE);
+                }
             } else {
                 canvas.draw_image('enemy_' + enemy.type + '_dead.png', x - TILE2, y - TILE);
             }
@@ -355,6 +467,65 @@ function draw_enemies() {
     }
 }
 
+
+function update_extras(t, dt) {
+    let remove = [];
+    for (let i = 0; i < extras.length; i++) {
+        let remove_me = false;
+        const spr = extras[i];
+        spr.pos.x += spr.speed.x * dt;
+        spr.pos.y += spr.speed.y * dt;
+        if (spr.type != 'heart.png') {
+            spr.speed.y += GRAVITY * dt;
+        }
+        if (spr.type == 'coin') {
+            if (spr.speed.y != 0 && (!is_sky(get_map_at(spr.pos)) || !is_sky(get_map_at(new Vec(spr.pos.x, spr.pos.y - TILE))))) {
+                spr.speed.y *= -0.5;
+                spr.pos.y += spr.speed.y * dt;
+                spr.speed.x *= 0.5;
+                if (spr.speed.y > -10) {
+                    spr.speed.set(0, 0);
+                }
+            }
+            const distance = spr.pos.distance(player.pos);
+            if (distance < TILE && player.wants_to_pick) {
+                pick(spr);
+                remove_me = true;
+            }
+        }
+
+        if (spr.life !== undefined) {
+            spr.life -= dt;
+            if (spr.life < 0) {
+                remove_me = true;
+            }
+        }
+
+        if (remove_me || spr.pos.y > H) {
+            remove.push(i);
+        }
+    }
+
+    // clean
+    for (let i = 0; i < remove.length; i++) {
+        extras.splice(remove[i], 1);
+    }
+}
+
+function draw_extras() {
+    for (let i = 0; i < extras.length; i++) {
+        const spr = extras[i];
+        const x = floor(spr.pos.x - scroll * TILE);
+        const y = floor(spr.pos.y);
+        if (check_inside_screen(x, y)) {
+            if (spr.type.indexOf('.png') == -1) {
+                canvas.draw_sprite(spr.type, x, y);
+            } else {
+                canvas.draw_image(spr.type, x, y);
+            }
+        }
+    }
+}
 
 function loop(t, dt) {
     dt = dt * game_speed;
@@ -367,8 +538,12 @@ function loop(t, dt) {
 
     update_sprite('a', dt);
     update_sprite('b', dt);
+    update_sprite('block_break', dt);
+    update_sprite('block_q', dt);
+    update_sprite('coin', dt);
 
     update_enemies(t, dt);
+    update_extras(t, dt);
     update_player(dt);
 
     if (player.pos.x > 120) {
@@ -378,6 +553,7 @@ function loop(t, dt) {
     }
     draw_map();
     draw_enemies();
+    draw_extras();
     draw_player(dt);
 
     if (player.pos.y > H + 30) {
@@ -399,6 +575,11 @@ function loop(t, dt) {
     canvas.draw_text("TIME", W - 70, 20, 2);
     canvas.draw_text(300 - floor(t), W - 50, 30, 2, 'right');
 
+    if (floor(t) >= 300) {
+        gameover = true;
+        gameover_msg = "TIME OUT!";
+    }
+
     if (abs(mouse.wheel) > 1) {
         game_speed -= mouse.wheel / 2000;
         game_speed = clamp(game_speed, -3, 3);
@@ -410,14 +591,17 @@ function loop(t, dt) {
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
     }
+
+    player.wants_to_pick = false;
+
 }
 
 
 function loop_gameover(t, dt) {
     if (t - gameover_t > 1) {
         canvas.fill_rect(0, 0, W, H, 0);
-        canvas.draw_text("GAME OVER", W / 2 - 30, H / 2, 2);
-        canvas.draw_text("- CLICK TO RESTART- ", W / 2 - 60, H / 2 + 20, 2);
+        canvas.draw_text(gameover_msg, W / 2, H / 2, 2, 'center');
+        canvas.draw_text("- CLICK TO RESTART- ", W / 2, H / 2 + 20, 2, 'center');
         if (mouse.just_left) {
             restart();
         }
