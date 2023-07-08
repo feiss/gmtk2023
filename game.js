@@ -20,6 +20,7 @@ function preload() {
 }
 
 let map;
+let map_items = [];
 let map_size;
 
 const is_sky = idx => idx == 6;
@@ -30,17 +31,32 @@ function loading(progress) {
     canvas.fill_rect(10, H / 2, floor(progress * (W - 20)), 1, 3);
 }
 
+
+function add_map_item(type, subtype, x, y) {
+    map_items.push({
+        type: type,
+        subtype: subtype,
+        pos: new Vec(x, y),
+    })
+}
+
 function load_map(path) {
     let img = assets[path];
     let c = new Canvas(img.width, img.height, 1);
     c.canvas.style.display = 'none';
-    map_size = img.width;
+    map_size = new Vec(img.width, img.height);
     c.draw_image(path, 0, 0);
     map = new Array(img.width);
     for (let x = 0; x < img.width; x++) {
         let col = new Array(img.height);
         for (let y = 0; y < img.height; y++) {
-            col[y] = c.pget(x, y);
+            const color = c.pget(x, y);
+            switch (color) {
+                case 19: add_map_item('enemy', 'a', x, y); col[y] = 6; break;
+                default: col[y] = color;
+            }
+
+
         }
         map[x] = col;
     }
@@ -79,6 +95,10 @@ function draw_map() {
 function get_map_at(p) {
     const x = floor(p.x / TILE);
     const y = floor(p.y / TILE);
+    if (isNaN(x) || isNaN(y) || x >= map_size.x || x < 0 || y < 0 || y >= map_size.y) {
+        // throw RangeError("Map outside bounds (" + x + ', ' + y + ')');
+        return 6;
+    }
     return map[x][y];
 }
 
@@ -119,12 +139,20 @@ function restart() {
     };
 
     enemies = [];
-    enemies.push({
-        type: 'a',
-        pos: new Vec(200, 200),
-        speed: -GOOMBA_SPEED,
-        alive: true,
-    });
+    for (let i = 0; i < map_items.length; i++) {
+        const item = map_items[i];
+        switch (item.type) {
+            case 'enemy':
+                enemies.push({
+                    type: item.subtype,
+                    pos: item.pos.mul(TILE),
+                    speed: -GOOMBA_SPEED,
+                    alive: true,
+                });
+                break;
+        }
+
+    }
 
     new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } });
 }
@@ -152,7 +180,7 @@ function update_player() {
     player.pos.x += player.speed.x;
     player.pos.y += player.speed.y;
 
-    player.pos.x = clamp(player.pos.x, TILE2 + 1, map_size * TILE - TILE2 - 1);
+    player.pos.x = clamp(player.pos.x, TILE2 + 1, map_size.x * TILE - TILE2 - 1);
 
     const hit_corner_bottom_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y));
     const hit_corner_bottom_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y));
@@ -225,25 +253,29 @@ function update_enemies(dt) {
         if (!enemy.alive) continue;
 
         enemy.pos.x += enemy.speed;
-        const hit_left = get_map_at(new Vec(enemy.pos.x - TILE2 + 1, enemy.pos.y - TILE2));
-        const hit_right = get_map_at(new Vec(enemy.pos.x + TILE2 - 1, enemy.pos.y - TILE2));
-        const hit_bottom_left = get_map_at(new Vec(enemy.pos.x - TILE2, enemy.pos.y));
-        const hit_bottom_right = get_map_at(new Vec(enemy.pos.x + TILE2, enemy.pos.y));
 
-        if (!is_sky(hit_left) || !is_sky(hit_right)) {
-            enemy.speed *= -1;
-            enemy.pos.x += enemy.speed;
-        }
-
-        if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right) || enemy.pos.y >= H) {
+        if (enemy.pos.y >= H) {
             enemy.pos.y += 1;
-        }
+        } else {
+            const hit_left = get_map_at(new Vec(enemy.pos.x - TILE2 + 1, enemy.pos.y - TILE2));
+            const hit_right = get_map_at(new Vec(enemy.pos.x + TILE2 - 1, enemy.pos.y - TILE2));
+            const hit_bottom_left = get_map_at(new Vec(enemy.pos.x - TILE2 + 1, enemy.pos.y));
+            const hit_bottom_right = get_map_at(new Vec(enemy.pos.x + TILE2 - 1, enemy.pos.y));
 
+            if (!is_sky(hit_left) || !is_sky(hit_right) || enemy.pos.x < TILE2 + 1) {
+                enemy.speed *= -1;
+                enemy.pos.x += enemy.speed;
+            }
+
+            if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right)) {
+                enemy.pos.y += 1;
+            }
+
+        }
         if (enemy.pos.y > H + 30) {
             enemy.alive = false;
         }
 
-        update_sprite('a', dt);
     }
 }
 
@@ -266,6 +298,8 @@ function loop(t, dt) {
     }
 
     canvas.fill_rect(0, 0, W, H, 6);
+
+    update_sprite('a', dt);
 
     update_enemies(dt);
     update_player();
