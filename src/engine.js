@@ -22,7 +22,7 @@ let canvas;
 
 const SCALE = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--SCALE'));
 const W = 320;
-const H = 200;
+const H = 240;
 const floor = Math.floor;
 const rnd = Math.random;
 const sin = Math.sin;
@@ -51,7 +51,7 @@ const mouse = {
 
 function __init() {
 
-    canvas = new Canvas(320, 200, SCALE);
+    canvas = new Canvas(W, H, SCALE);
 
     set_palette([
         '#FF4136',

@@ -12,6 +12,12 @@ function angle(x1, y1, x2, y2) {
     return Math.atan2(dy, dx);
 }
 
+function clamp(v, min, max) {
+    if (v < min) return min;
+    if (v > max) return max;
+    return v;
+}
+
 function lerp(a, b, t) {
     return a + (b - a) * t;
 }
