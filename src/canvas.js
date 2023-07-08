@@ -111,8 +111,25 @@ class Canvas {
         }
     }
 
-    draw_image(img, x, y) {
-        this.ctx.drawImage(assets[img], x, y);
+    draw_image(img, x, y, flip) {
+        let asset = typeof img === 'string' ? assets[img] : img;
+        if (flip === true) {
+            this.ctx.scale(-1, 1);
+            this.ctx.drawImage(asset, -x - asset.width, y);
+            this.ctx.scale(-1, 1);
+        }
+        else {
+            this.ctx.drawImage(asset, x, y);
+        }
+    }
+
+    draw_sprite(name, x, y, flip) {
+        const spr = sprites[name];
+        if (x === undefined) {
+            x = spr.x;
+            y = spr.y;
+        }
+        this.draw_image(assets[spr.animations[spr.animation].frames[spr.frame]], x - spr.anchor_x, y - spr.anchor_y, flip);
     }
 
 

@@ -256,12 +256,3 @@ function set_sprite_animation(sprite, animation) {
     spr.frame = 0;
     spr.time = 0;
 }
-
-function draw_sprite(name, x, y) {
-    const spr = sprites[name];
-    if (x === undefined) {
-        x = spr.x;
-        y = spr.y;
-    }
-    ctx.drawImage(assets[spr.animations[spr.animation].frames[spr.frame]], x - spr.anchor_x, y - spr.anchor_y);
-}

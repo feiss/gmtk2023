@@ -5,13 +5,12 @@ function preload() {
         "map1-1.png",
         "pepe.png",
         "pepe_jump.png",
-        "pepe_h.png",
-        "pepe_h_jump.png",
         "block_a.png",
         "block_b.png",
         "block_c.png",
         "block_q.png",
-        "enemy_a.png",
+        "enemy_a1.png",
+        "enemy_a2.png",
         "enemy_b.png",
         "pipe1.png",
         "pipe2.png",
@@ -104,8 +103,9 @@ const PLAYER_JUMP_SPEED = 4.0;
 const MEGAJUMP_FRAME_CHECK = 12;
 const GRAVITY = 0.3;
 
+const GOOMBA_SPEED = 0.3;
 
-let player;
+let player, enemies;
 
 
 function restart() {
@@ -117,6 +117,16 @@ function restart() {
         look_right: true,
         jump_frame: 0,
     };
+
+    enemies = [];
+    enemies.push({
+        type: 'a',
+        pos: new Vec(200, 200),
+        speed: -GOOMBA_SPEED,
+        alive: true,
+    });
+
+    new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } });
 }
 
 function update_player() {
@@ -193,17 +203,57 @@ function update_player() {
     player.speed.x *= PLAYER_DRAG;
 }
 
+
 function draw_player() {
     const x = floor(player.pos.x - scroll * TILE - TILE2);
     const y = floor(player.pos.y - TILE + 1);
 
-    const dir = player.look_right ? '' : '_h';
+    const flip = !player.look_right;
 
     if (player.on_air) {
-        canvas.draw_image('pepe' + dir + '_jump.png', x, y);
+        canvas.draw_image('pepe_jump.png', x, y, flip);
     } else {
-        canvas.draw_image('pepe' + dir + '.png', x, y);
+        canvas.draw_image('pepe.png', x, y, flip);
+    }
+}
 
+
+function update_enemies(dt) {
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        if (!enemy.alive) continue;
+
+        enemy.pos.x += enemy.speed;
+        const hit_left = get_map_at(new Vec(enemy.pos.x - TILE2 + 1, enemy.pos.y - TILE2));
+        const hit_right = get_map_at(new Vec(enemy.pos.x + TILE2 - 1, enemy.pos.y - TILE2));
+        const hit_bottom_left = get_map_at(new Vec(enemy.pos.x - TILE2, enemy.pos.y));
+        const hit_bottom_right = get_map_at(new Vec(enemy.pos.x + TILE2, enemy.pos.y));
+
+        if (!is_sky(hit_left) || !is_sky(hit_right)) {
+            enemy.speed *= -1;
+            enemy.pos.x += enemy.speed;
+        }
+
+        if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right) || enemy.pos.y >= H) {
+            enemy.pos.y += 1;
+        }
+
+        if (enemy.pos.y > H + 30) {
+            enemy.alive = false;
+        }
+
+        update_sprite('a', dt);
+    }
+}
+
+function draw_enemies() {
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+
+        const x = floor(enemy.pos.x - scroll * TILE - TILE2);
+        const y = floor(enemy.pos.y - TILE + 1);
+
+        canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
     }
 }
 
@@ -216,6 +266,7 @@ function loop(t, dt) {
 
     canvas.fill_rect(0, 0, W, H, 6);
 
+    update_enemies(dt);
     update_player();
 
     if (player.pos.x > 120) {
@@ -224,6 +275,7 @@ function loop(t, dt) {
         scroll = 0;
     }
     draw_map();
+    draw_enemies();
     draw_player();
 
     if (player.pos.y > H + 30) {
@@ -232,11 +284,9 @@ function loop(t, dt) {
 
     // debug
     canvas.draw_image("map1-1.png", 0, 0);
-    canvas.pset(floor((player.pos.x - scroll) / TILE), floor(player.pos.y / TILE), 23)
+    canvas.pset(floor((player.pos.x - scroll) / TILE), floor(player.pos.y / TILE) - 1, 23)
     // canvas.draw_rect(20, 30, 0, 5, 0);
     // canvas.draw_rect(20, 31, floor(player.speed.x) * 2, 3, 0);
-    canvas.draw_text(floor(player.speed.y * 10), 20, 30, 0);
-    console.log(player.speed.y);
 
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
