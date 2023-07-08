@@ -75,14 +75,14 @@ class Vec {
         return Math.sqrt(this.x * this.x + this.y * this.y);
     }
 
-    clamp(min, max) {
-        const m = this.length();
-        if (m < min) {
-            this.normalize().mul(min);
-        } else if (m > max) {
-            this.normalize().mul(max);
-        }
-    }
+    // clamp(min, max) {
+    //     const m = this.length();
+    //     if (m < min) {
+    //         this.normalize().mul(min);
+    //     } else if (m > max) {
+    //         this.normalize().mul(max);
+    //     }
+    // }
 
     distance(p) {
         const dx = p.x - this.x;

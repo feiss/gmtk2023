@@ -80,14 +80,15 @@ function start() {
 
 }
 
-const PLAYER_ACCEL = 0.01;
-const PLAYER_MAX_SPEED = new Vec(20.0, 20.0);
+const PLAYER_ACCEL = 0.2;
 const PLAYER_DRAG = 0.93;
+const PLAYER_MAX_HSPEED = 20.0;
+const PLAYER_MAX_VSPEED = 20.0;
 const PLAYER_JUMP_SPEED = 5.0;
 const GRAVITY = 0.4;
 
 let player = {
-    pos: new Vec(100, 192),
+    pos: new Vec(100, 12),
     speed: new Vec(0, 0),
     on_air: false,
 };
@@ -104,25 +105,29 @@ function update_player() {
         player.speed.x -= PLAYER_ACCEL;
     }
 
-    player.speed.clamp(PLAYER_MAX_SPEED);
+    player.speed.x = clamp(player.speed.x, -PLAYER_MAX_HSPEED, PLAYER_MAX_HSPEED);
+    player.speed.y = clamp(player.speed.y, -PLAYER_MAX_VSPEED, PLAYER_MAX_VSPEED);
 
     player.pos.x += player.speed.x;
     player.pos.y += player.speed.y;
     player.speed.x *= PLAYER_DRAG;
-
     if (is_sky(get_map_at(player.pos))) {
+        player.on_air = true;
         player.speed.y += GRAVITY;
     } else {
+        // raise to ground
+        player.pos.y -= player.speed.y;
+        player.speed.y = 0;
         player.on_air = false;
     }
 
-    player.pos.x = clamp(player.pos.x, 100, map_size);
+    player.pos.x = clamp(player.pos.x, 5, map_size * TILE);
     // player.pos.y = clamp(player.pos.y, 0, 192);
 }
 
 function draw_player() {
-    const x = player.pos.x - scroll - TILE / 2;
-    const y = player.pos.y - TILE;
+    const x = floor(player.pos.x - scroll * TILE - TILE / 2);
+    const y = floor(player.pos.y - TILE + 1);
 
     canvas.draw_image('pepe.png', x, y);
 }
@@ -132,10 +137,23 @@ function loop(t, dt) {
 
     update_player();
 
-    scroll = clamp(player.pos.x - 100, 0, map_size);
-
+    // scroll = clamp(player.pos.x - 100, 0, map_size);
+    if (player.pos.x > 120) {
+        scroll = (player.pos.x - 120) / TILE;
+    } else {
+        scroll = 0;
+    }
     draw_map();
     draw_player();
+
+    // debug
+    canvas.draw_image("map1-1.png", 0, 0);
+    canvas.pset(floor((player.pos.x - scroll) / TILE), floor(player.pos.y / TILE), 23)
+    canvas.draw_rect(20, 30, 0, 5, 0);
+    canvas.draw_rect(20, 31, floor(player.speed.y) * 2, 3, 0);
+    if (player.on_air) {
+        canvas.draw_text("air", 12, 29, 0);
+    }
 
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
