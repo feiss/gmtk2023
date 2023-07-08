@@ -63,7 +63,9 @@ function draw_map() {
 }
 
 function get_map_at(p) {
-
+    const x = floor(p.x / TILE);
+    const y = floor(p.y / TILE);
+    return map[x][y];
 }
 
 function start() {
@@ -82,7 +84,7 @@ const PLAYER_ACCEL = 0.01;
 const PLAYER_MAX_SPEED = new Vec(20.0, 20.0);
 const PLAYER_DRAG = 0.93;
 const PLAYER_JUMP_SPEED = 5.0;
-const GRAVITY = 2.0;
+const GRAVITY = 0.4;
 
 let player = {
     pos: new Vec(100, 192),
@@ -115,11 +117,14 @@ function update_player() {
     }
 
     player.pos.x = clamp(player.pos.x, 100, map_size);
-    player.pos.y = clamp(player.pos.y, 0, 192);
+    // player.pos.y = clamp(player.pos.y, 0, 192);
 }
 
 function draw_player() {
-    canvas.draw_image('pepe.png', player.pos.x, player.pos.y);
+    const x = player.pos.x - scroll - TILE / 2;
+    const y = player.pos.y - TILE;
+
+    canvas.draw_image('pepe.png', x, y);
 }
 
 function loop(t, dt) {
