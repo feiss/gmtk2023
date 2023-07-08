@@ -7,6 +7,7 @@ window.addEventListener("keyup", __keyup);
 window.addEventListener("mousedown", __mousedown);
 window.addEventListener("mouseup", __mouseup);
 window.addEventListener("mousemove", __mousemove);
+window.addEventListener("wheel", __mousewheel);
 document.addEventListener("contextmenu", function (event) {
     event.preventDefault();
 });
@@ -45,6 +46,7 @@ const mouse = {
     downy: 0,
     prevx: 0,
     prevy: 0,
+    wheel: 0,
 };
 
 
@@ -128,6 +130,7 @@ function __loop(t) {
     // game loop
     loop(t / 1000, dt / 1000);
 
+    mouse.wheel *= 0.5;
     mouse.just_left = false;
     mouse.just_middle = false;
     mouse.just_right = false;
@@ -190,6 +193,10 @@ function __mousemove(ev) {
     mouse.y = floor((ev.y - canvas.canvas.offsetTop) / SCALE);
     mouse.vx = mouse.x - mouse.prevx;
     mouse.vy = mouse.y - mouse.prevy;
+}
+
+function __mousewheel(ev) {
+    mouse.wheel = ev.deltaY;
 }
 
 function __hex2rgb(hex) {

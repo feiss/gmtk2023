@@ -14,8 +14,10 @@ function preload() {
         "block_q.png",
         "enemy_a1.png",
         "enemy_a2.png",
+        "enemy_a_dead.png",
         "enemy_b1.png",
         "enemy_b2.png",
+        "enemy_b_dead.png",
         "pipe1.png",
         "pipe2.png",
         "pipe3.png",
@@ -40,7 +42,7 @@ function add_map_item(type, subtype, x, y) {
     map_items.push({
         type: type,
         subtype: subtype,
-        pos: new Vec(x, y),
+        pos: new Vec(x, y).mul(TILE),
     })
 }
 
@@ -60,8 +62,6 @@ function load_map(path) {
                 case 20: add_map_item('enemy', 'b', x, y); col[y] = 6; break;
                 default: col[y] = color;
             }
-
-
         }
         map[x] = col;
     }
@@ -74,6 +74,8 @@ let mapW = floor(W / TILE);
 let mapH = floor(H / TILE);
 
 let gameover = false;
+let gameover_t = 0;
+let game_speed = 1;
 
 const MAP_TILE = new Array(100);
 MAP_TILE[32] = 'block_c.png';
@@ -107,7 +109,9 @@ function draw_map() {
             }
 
             if (img) {
-                canvas.draw_image(img, (x - scroll_frac) * TILE + offset.x, y * TILE + offset.y);
+                canvas.draw_image(img,
+                    floor((x - scroll_frac) * TILE + offset.x),
+                    floor(y * TILE + offset.y));
             }
         }
     }
@@ -130,25 +134,21 @@ function start() {
 
     new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } }, 0.5, 1);
     new_sprite('b', { 'count': { frames: ['enemy_b1.png', 'enemy_b2.png'], fps: 2 } }, 0.5, 1);
-    new_sprite('run', { 'count': { frames: ['pepe_run1.png', 'pepe_run2.png', 'pepe_run3.png'], fps: 15 } });
+    new_sprite('run', { 'count': { frames: ['pepe_run1.png', 'pepe_run2.png', 'pepe_run3.png'], fps: 0.3 } });
 
     load_map("map1-1.png");
     restart();
-    // new_sprite('sonic', {
-    //     'count': { frames: ['sonic0.png', 'sonic1.png', 'sonic2.png', 'sonic3.png'], fps: 10 },
-    // }, 0.5, 0.5);
-
 }
 
-const PLAYER_ACCEL = 0.2;
+const PLAYER_ACCEL = 13;
 const PLAYER_DRAG = 0.93;
-const PLAYER_MAX_HSPEED = 20.0;
-const PLAYER_MAX_VSPEED = 20.0;
-const PLAYER_JUMP_SPEED = 4.0;
-const MEGAJUMP_FRAME_CHECK = 12;
-const GRAVITY = 0.3;
+const PLAYER_MAX_HSPEED = 1333.0;
+const PLAYER_MAX_VSPEED = 1333.0;
+const PLAYER_JUMP_SPEED = 266.0;
+const MEGAJUMP_FRAME_CHECK = 11;
+const GRAVITY = 1200;
 
-const GOOMBA_SPEED = 0.3;
+const GOOMBA_SPEED = 20.0;
 const BRICK_SHAKE_TIME = 8;
 
 let player, enemies;
@@ -156,8 +156,11 @@ let player, enemies;
 
 function restart() {
     gameover = false;
+    gameover_t = 0;
+    game_speed = 1;
+
     player = {
-        pos: new Vec(100, 150),
+        pos: new Vec(740, 150),
         speed: new Vec(0, 0),
         on_air: false,
         look_right: true,
@@ -174,7 +177,7 @@ function restart() {
             case 'enemy':
                 enemies.push({
                     type: item.subtype,
-                    pos: item.pos.mul(TILE),
+                    pos: item.pos,
                     speed: -GOOMBA_SPEED,
                     alive: true,
                 });
@@ -185,7 +188,7 @@ function restart() {
 
 }
 
-function update_player() {
+function update_player(dt) {
     let hit_bottom_left = get_map_at(new Vec(player.pos.x - TILE2 - 1, player.pos.y - 1));
     let hit_bottom_right = get_map_at(new Vec(player.pos.x + TILE2 + 1, player.pos.y - 1));
 
@@ -205,8 +208,8 @@ function update_player() {
     player.speed.x = clamp(player.speed.x, -PLAYER_MAX_HSPEED, PLAYER_MAX_HSPEED);
     player.speed.y = clamp(player.speed.y, -PLAYER_MAX_VSPEED, PLAYER_MAX_VSPEED);
 
-    player.pos.x += player.speed.x;
-    player.pos.y += player.speed.y;
+    player.pos.x += player.speed.x * dt;
+    player.pos.y += player.speed.y * dt;
 
     player.pos.x = clamp(player.pos.x, TILE2 + 1, map_size.x * TILE - TILE2 - 1);
 
@@ -250,19 +253,19 @@ function update_player() {
         if (player.speed.y < 0) {
             const megajump = player.jump_frame < MEGAJUMP_FRAME_CHECK && keys['ArrowUp'];
             if (!megajump) {
-                player.speed.y += GRAVITY;
+                player.speed.y += GRAVITY * dt;
             }
         } else {
-            player.speed.y += GRAVITY;
+            player.speed.y += GRAVITY * dt;
         }
     }
 
     if (!is_sky(hit_bottom_left) || !is_sky(hit_top_left)) {
-        player.pos.x -= player.speed.x;
+        player.pos.x -= player.speed.x * dt;
         player.speed.x = 0;
     }
     if (!is_sky(hit_bottom_right) || !is_sky(hit_top_right)) {
-        player.pos.x -= player.speed.x;
+        player.pos.x -= player.speed.x * dt;
         player.speed.x = 0;
     }
 
@@ -286,19 +289,19 @@ function draw_player(dt) {
             canvas.draw_image('pepe.png', x, y, flip);
         } else {
             canvas.draw_sprite('run', x, y, flip);
-            update_sprite('run', dt * Math.abs(player.speed.x));
+            update_sprite('run', Math.abs(player.speed.x * dt));
 
         }
     }
 }
 
 
-function update_enemies(dt) {
+function update_enemies(t, dt) {
     for (let i = 0; i < enemies.length; i++) {
         const enemy = enemies[i];
         if (!enemy.alive) continue;
 
-        enemy.pos.x += enemy.speed;
+        enemy.pos.x += enemy.speed * dt;
 
         if (enemy.pos.y >= H) {
             enemy.pos.y += 1;
@@ -310,11 +313,22 @@ function update_enemies(dt) {
 
             if (!is_sky(hit_left) || !is_sky(hit_right) || enemy.pos.x < TILE2 + 1) {
                 enemy.speed *= -1;
-                enemy.pos.x += enemy.speed;
+                enemy.pos.x += enemy.speed * dt;
             }
 
             if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right)) {
-                enemy.pos.y += 1;
+                enemy.pos.y += 66 * dt;
+            }
+
+            // check player
+            if (enemy.pos.distance(player.pos) < TILE) {
+                if (abs(enemy.pos.y - player.pos.y) > abs(enemy.pos.x - player.pos.x)) {
+                    enemy.alive = false;
+                    player.speed.y = -PLAYER_JUMP_SPEED * 0.75;
+                } else {
+                    gameover = true;
+                    gameover_t = t;
+                }
             }
 
         }
@@ -332,13 +346,18 @@ function draw_enemies() {
         const x = floor(enemy.pos.x - scroll * TILE);
         const y = floor(enemy.pos.y);
         if (x > -TILE && x < W + TILE && y < H + TILE * 2) {
-            canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
+            if (enemy.alive) {
+                canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
+            } else {
+                canvas.draw_image('enemy_' + enemy.type + '_dead.png', x - TILE2, y - TILE);
+            }
         }
     }
 }
 
 
 function loop(t, dt) {
+    dt = dt * game_speed;
 
     if (gameover) {
         return loop_gameover(t, dt);
@@ -349,8 +368,8 @@ function loop(t, dt) {
     update_sprite('a', dt);
     update_sprite('b', dt);
 
-    update_enemies(dt);
-    update_player();
+    update_enemies(t, dt);
+    update_player(dt);
 
     if (player.pos.x > 120) {
         scroll = (player.pos.x - 120) / TILE;
@@ -380,6 +399,14 @@ function loop(t, dt) {
     canvas.draw_text("TIME", W - 70, 20, 2);
     canvas.draw_text(300 - floor(t), W - 50, 30, 2, 'right');
 
+    if (abs(mouse.wheel) > 1) {
+        game_speed -= mouse.wheel / 2000;
+        game_speed = clamp(game_speed, -3, 3);
+    }
+    if (game_speed != 1) {
+        canvas.draw_text("x" + floor(game_speed * 10) / 10, 5, 10, 24);
+    }
+
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
     }
@@ -387,10 +414,12 @@ function loop(t, dt) {
 
 
 function loop_gameover(t, dt) {
-    canvas.fill_rect(0, 0, W, H, 0);
-    canvas.draw_text("GAME OVER", W / 2 - 30, H / 2, 2);
-    canvas.draw_text("- CLICK TO TRY AGAIN- ", W / 2 - 60, H / 2 + 20, 2);
-    if (mouse.just_left) {
-        restart();
+    if (t - gameover_t > 1) {
+        canvas.fill_rect(0, 0, W, H, 0);
+        canvas.draw_text("GAME OVER", W / 2 - 30, H / 2, 2);
+        canvas.draw_text("- CLICK TO RESTART- ", W / 2 - 60, H / 2 + 20, 2);
+        if (mouse.just_left) {
+            restart();
+        }
     }
 }
