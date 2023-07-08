@@ -68,8 +68,9 @@ class Canvas {
         this.ctx.strokeRect(x + 0.5, y + 0.5, w, h);
     }
 
-    draw_text(text, x, y, color) {
+    draw_text(text, x, y, color, align) {
         this.ctx.fillStyle = palette[color];
+        this.ctx.textAlign = align || 'left';
         this.ctx.fillText(text, x, y);
     }
 

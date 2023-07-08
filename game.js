@@ -5,6 +5,9 @@ function preload() {
         "map1-1.png",
         "pepe.png",
         "pepe_jump.png",
+        "pepe_run1.png",
+        "pepe_run2.png",
+        "pepe_run3.png",
         "block_a.png",
         "block_b.png",
         "block_c.png",
@@ -24,7 +27,7 @@ let map;
 let map_items = [];
 let map_size;
 
-const is_sky = idx => idx == 6;
+const is_sky = idx => idx == 6 || idx == 1 || idx == 2;
 const is_floor = idx => idx == 32 || idx == 4;
 const is_breakable = idx => idx == 36;
 
@@ -124,6 +127,11 @@ function start() {
     set_palette([
         '#000000', '#fcfcfc', '#f8f8f8', '#bcbcbc', '#7c7c7c', '#a4e4fc', '#3cbcfc', '#0078f8', '#0000fc', '#b8b8f8', '#6888fc', '#0058f8', '#0000bc', '#d8b8f8', '#9878f8', '#6844fc', '#4428bc', '#f8b8f8', '#f878f8', '#d800cc', '#940084', '#f8a4c0', '#f85898', '#e40058', '#a80020', '#f0d0b0', '#f87858', '#f83800', '#a81000', '#fce0a8', '#fca044', '#e45c10', '#881400', '#f8d878', '#f8b800', '#ac7c00', '#503000', '#d8f878', '#b8f818', '#00b800', '#007800', '#b8f8b8', '#58d854', '#00a800', '#006800', '#b8f8d8', '#58f898', '#00a844', '#005800', '#00fcfc', '#00e8d8', '#008888', '#004058', '#f8d8f8', '#787878',
     ]);
+
+    new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } }, 0.5, 1);
+    new_sprite('b', { 'count': { frames: ['enemy_b1.png', 'enemy_b2.png'], fps: 2 } }, 0.5, 1);
+    new_sprite('run', { 'count': { frames: ['pepe_run1.png', 'pepe_run2.png', 'pepe_run3.png'], fps: 15 } });
+
     load_map("map1-1.png");
     restart();
     // new_sprite('sonic', {
@@ -156,6 +164,7 @@ function restart() {
         jump_frame: 0,
         block: null,
         block_time: 0,
+        points: 0,
     };
 
     enemies = [];
@@ -174,8 +183,6 @@ function restart() {
 
     }
 
-    new_sprite('a', { 'count': { frames: ['enemy_a1.png', 'enemy_a2.png'], fps: 2 } }, 0.5, 1);
-    new_sprite('b', { 'count': { frames: ['enemy_b1.png', 'enemy_b2.png'], fps: 2 } }, 0.5, 1);
 }
 
 function update_player() {
@@ -234,6 +241,7 @@ function update_player() {
         if (!player.block || !player.block.equals_to(block)) {
             player.block = block;
             player.block_time = BRICK_SHAKE_TIME;
+            player.points += 50;
         }
     }
 
@@ -265,7 +273,7 @@ function update_player() {
 }
 
 
-function draw_player() {
+function draw_player(dt) {
     const x = floor(player.pos.x - scroll * TILE - TILE2);
     const y = floor(player.pos.y - TILE + 1);
 
@@ -274,7 +282,13 @@ function draw_player() {
     if (player.on_air) {
         canvas.draw_image('pepe_jump.png', x, y, flip);
     } else {
-        canvas.draw_image('pepe.png', x, y, flip);
+        if (Math.abs(player.speed.x) < 0.1) {
+            canvas.draw_image('pepe.png', x, y, flip);
+        } else {
+            canvas.draw_sprite('run', x, y, flip);
+            update_sprite('run', dt * Math.abs(player.speed.x));
+
+        }
     }
 }
 
@@ -345,17 +359,26 @@ function loop(t, dt) {
     }
     draw_map();
     draw_enemies();
-    draw_player();
+    draw_player(dt);
 
     if (player.pos.y > H + 30) {
         gameover = true;
     }
 
     // debug
-    canvas.draw_image("map1-1.png", 0, 0);
-    canvas.pset(floor((player.pos.x - scroll) / TILE), floor(player.pos.y / TILE) - 1, 23)
+    // canvas.draw_image("map1-1.png", 0, 0);
+    // canvas.pset(floor((player.pos.x - scroll) / TILE), floor(player.pos.y / TILE) - 1, 23)
     // canvas.draw_rect(20, 30, 0, 5, 0);
     // canvas.draw_rect(20, 31, floor(player.speed.x) * 2, 3, 0);
+
+    if (t < 1.5) {
+        canvas.draw_text("WORLD 1 - 1", W / 2 - 30, H / 2, 2);
+    }
+
+    canvas.draw_text("PEPE", 40, 20, 2);
+    canvas.draw_text(player.points, 62, 30, 2, 'right');
+    canvas.draw_text("TIME", W - 70, 20, 2);
+    canvas.draw_text(300 - floor(t), W - 50, 30, 2, 'right');
 
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
