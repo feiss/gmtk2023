@@ -128,3 +128,25 @@ class Vec {
     }
 }
 
+
+class Rect {
+    constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        return this;
+    }
+    hit_test(p) {
+        return p.x >= this.x && p.x < this.x + this.w && p.y >= this.y && p.y < this.y + this.h;
+    }
+
+    hit_test(rect) {
+        return !(
+            rect.x + rect.w < this.x ||
+            rect.x >= this.x + this.w ||
+            rect.y + rect.h < this.y ||
+            rect.y >= this.y + this.h
+        )
+    }
+}

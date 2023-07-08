@@ -41,6 +41,7 @@ function load_map(path) {
 
 let scroll = 0;
 let TILE = 16;
+let TILE2 = 8;
 let mapW = floor(W / TILE);
 let mapH = floor(H / TILE);
 
@@ -85,48 +86,79 @@ const PLAYER_DRAG = 0.93;
 const PLAYER_MAX_HSPEED = 20.0;
 const PLAYER_MAX_VSPEED = 20.0;
 const PLAYER_JUMP_SPEED = 5.0;
-const GRAVITY = 0.4;
+const GRAVITY = 0.3;
 
 let player = {
-    pos: new Vec(100, 12),
+    pos: new Vec(100, 100),
     speed: new Vec(0, 0),
     on_air: false,
 };
 
 function update_player() {
+    let hit_bottom_left = get_map_at(new Vec(player.pos.x - TILE2 - 1, player.pos.y - 1));
+    let hit_bottom_right = get_map_at(new Vec(player.pos.x + TILE2 + 1, player.pos.y - 1));
+
+
     if (keys['ArrowUp'] && !player.on_air) {
         player.on_air = true;
         player.speed.y = -PLAYER_JUMP_SPEED;
     }
-    if (keys['ArrowRight']) {
+    if (keys['ArrowRight'] && is_sky(hit_bottom_right)) {
         player.speed.x += PLAYER_ACCEL;
     }
-    if (keys['ArrowLeft']) {
+    if (keys['ArrowLeft'] && is_sky(hit_bottom_left)) {
         player.speed.x -= PLAYER_ACCEL;
     }
-
     player.speed.x = clamp(player.speed.x, -PLAYER_MAX_HSPEED, PLAYER_MAX_HSPEED);
     player.speed.y = clamp(player.speed.y, -PLAYER_MAX_VSPEED, PLAYER_MAX_VSPEED);
 
     player.pos.x += player.speed.x;
     player.pos.y += player.speed.y;
-    player.speed.x *= PLAYER_DRAG;
-    if (is_sky(get_map_at(player.pos))) {
+
+    const hit_corner_bottom_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y));
+    const hit_corner_bottom_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y));
+    const hit_corner_top_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - TILE));
+    const hit_corner_top_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y - TILE));
+    const hit_top_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - TILE + 4));
+    const hit_top_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y - TILE + 4));
+    hit_bottom_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y - 4));
+    hit_bottom_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - 4));
+
+
+    if (is_sky(hit_corner_bottom_left) && is_sky(hit_corner_bottom_right)) {
         player.on_air = true;
-        player.speed.y += GRAVITY;
-    } else {
-        // raise to ground
+    } else if (player.speed.y > 0) {
         player.pos.y -= player.speed.y;
         player.speed.y = 0;
         player.on_air = false;
     }
 
+    if (!is_sky(hit_corner_top_left) || !is_sky(hit_corner_top_right)) {
+        player.speed.y = 1;
+    }
+
+    if (player.on_air) {
+        player.speed.y += GRAVITY;
+    }
+
+    if (!is_sky(hit_bottom_left) || !is_sky(hit_top_left)) {
+        player.pos.x -= player.speed.x;
+        player.speed.x = 0;
+    }
+    if (!is_sky(hit_bottom_right) || !is_sky(hit_top_right)) {
+        player.pos.x -= player.speed.x;
+        player.speed.x = 0;
+    }
+
+
     player.pos.x = clamp(player.pos.x, 5, map_size * TILE);
     // player.pos.y = clamp(player.pos.y, 0, 192);
+
+    player.speed.x *= PLAYER_DRAG;
 }
 
 function draw_player() {
-    const x = floor(player.pos.x - scroll * TILE - TILE / 2);
+    const x = floor(player.pos.x - scroll * TILE - TILE2);
     const y = floor(player.pos.y - TILE + 1);
 
     canvas.draw_image('pepe.png', x, y);
@@ -149,11 +181,8 @@ function loop(t, dt) {
     // debug
     canvas.draw_image("map1-1.png", 0, 0);
     canvas.pset(floor((player.pos.x - scroll) / TILE), floor(player.pos.y / TILE), 23)
-    canvas.draw_rect(20, 30, 0, 5, 0);
-    canvas.draw_rect(20, 31, floor(player.speed.y) * 2, 3, 0);
-    if (player.on_air) {
-        canvas.draw_text("air", 12, 29, 0);
-    }
+    // canvas.draw_rect(20, 30, 0, 5, 0);
+    // canvas.draw_rect(20, 31, floor(player.speed.x) * 2, 3, 0);
 
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
