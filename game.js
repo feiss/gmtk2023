@@ -152,6 +152,8 @@ function update_player() {
     player.pos.x += player.speed.x;
     player.pos.y += player.speed.y;
 
+    player.pos.x = clamp(player.pos.x, TILE2 + 1, map_size * TILE - TILE2 - 1);
+
     const hit_corner_bottom_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y));
     const hit_corner_bottom_right = get_map_at(new Vec(player.pos.x + TILE2, player.pos.y));
     const hit_corner_top_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - TILE));
@@ -197,7 +199,6 @@ function update_player() {
     }
 
 
-    player.pos.x = clamp(player.pos.x, 5, map_size * TILE);
     // player.pos.y = clamp(player.pos.y, 0, 192);
 
     player.speed.x *= PLAYER_DRAG;
