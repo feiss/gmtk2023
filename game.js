@@ -84,11 +84,27 @@ MAP_TILE[42] = 'pipe4.png';
 function draw_map() {
     const map_scroll = floor(scroll);
     const scroll_frac = scroll - map_scroll;
+    let offset = new Vec(0, 0);
+
     for (let x = 0; x < mapW + 1; x++) {
         for (let y = 0; y < mapH; y++) {
-            const img = MAP_TILE[map[x + map_scroll][y]];
+            offset.x = 0;
+            offset.y = 0;
+            const xx = x + map_scroll;
+            const img = MAP_TILE[map[xx][y]];
+
+            if (player.block) {
+                if (player.block.x == xx && player.block.y == y && player.block_time > 0) {
+                    player.block_time -= 1;
+                    offset.y = -Math.sin((player.block_time / BRICK_SHAKE_TIME) * Math.PI) * 5;
+                    if (player.block_time <= 0) {
+                        player.block = null;
+                    }
+                }
+            }
+
             if (img) {
-                canvas.draw_image(img, (x - scroll_frac) * TILE, y * TILE);
+                canvas.draw_image(img, (x - scroll_frac) * TILE + offset.x, y * TILE + offset.y);
             }
         }
     }
@@ -109,7 +125,6 @@ function start() {
         '#000000', '#fcfcfc', '#f8f8f8', '#bcbcbc', '#7c7c7c', '#a4e4fc', '#3cbcfc', '#0078f8', '#0000fc', '#b8b8f8', '#6888fc', '#0058f8', '#0000bc', '#d8b8f8', '#9878f8', '#6844fc', '#4428bc', '#f8b8f8', '#f878f8', '#d800cc', '#940084', '#f8a4c0', '#f85898', '#e40058', '#a80020', '#f0d0b0', '#f87858', '#f83800', '#a81000', '#fce0a8', '#fca044', '#e45c10', '#881400', '#f8d878', '#f8b800', '#ac7c00', '#503000', '#d8f878', '#b8f818', '#00b800', '#007800', '#b8f8b8', '#58d854', '#00a800', '#006800', '#b8f8d8', '#58f898', '#00a844', '#005800', '#00fcfc', '#00e8d8', '#008888', '#004058', '#f8d8f8', '#787878',
     ]);
     load_map("map1-1.png");
-    draw_map();
     restart();
     // new_sprite('sonic', {
     //     'count': { frames: ['sonic0.png', 'sonic1.png', 'sonic2.png', 'sonic3.png'], fps: 10 },
@@ -126,6 +141,7 @@ const MEGAJUMP_FRAME_CHECK = 12;
 const GRAVITY = 0.3;
 
 const GOOMBA_SPEED = 0.3;
+const BRICK_SHAKE_TIME = 8;
 
 let player, enemies;
 
@@ -138,6 +154,8 @@ function restart() {
         on_air: false,
         look_right: true,
         jump_frame: 0,
+        block: null,
+        block_time: 0,
     };
 
     enemies = [];
@@ -206,6 +224,17 @@ function update_player() {
 
     if (!is_sky(hit_corner_top_left) || !is_sky(hit_corner_top_right)) {
         player.speed.y = 1;
+        let block;
+
+        if (is_breakable(hit_corner_top_left)) {
+            block = new Vec(player.pos.x - TILE2, player.pos.y - TILE).div(TILE).floor();
+        } else if (is_breakable(hit_corner_top_right)) {
+            block = new Vec(player.pos.x + TILE2, player.pos.y - TILE).div(TILE).floor();
+        }
+        if (!player.block || !player.block.equals_to(block)) {
+            player.block = block;
+            player.block_time = BRICK_SHAKE_TIME;
+        }
     }
 
     if (player.on_air) {

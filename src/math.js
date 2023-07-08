@@ -39,6 +39,11 @@ class Vec {
         return this;
     }
 
+    equals_to(v) {
+        if (!v) return false;
+        return v.x == this.x && v.y == this.y;
+    }
+
     clone() {
         return new Vec(this.x, this.y);
     }
@@ -69,6 +74,12 @@ class Vec {
         } else {
             throw new Error("Zero division");
         }
+    }
+
+    floor() {
+        this.x = floor(this.x);
+        this.y = floor(this.y);
+        return this;
     }
 
     length() {
