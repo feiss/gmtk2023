@@ -4,6 +4,9 @@ function preload() {
     return [
         "map1-1.png",
         "pepe.png",
+        "pepe_jump.png",
+        "pepe_h.png",
+        "pepe_h_jump.png",
         "block_a.png",
         "block_b.png",
         "block_c.png",
@@ -30,7 +33,8 @@ function loading(progress) {
 
 function load_map(path) {
     let img = assets[path];
-    let c = new Canvas(img.width, img.height);
+    let c = new Canvas(img.width, img.height, 1);
+    c.canvas.style.display = 'none';
     map_size = img.width;
     c.draw_image(path, 0, 0);
     map = new Array(img.width);
@@ -48,6 +52,8 @@ let TILE = 16;
 let TILE2 = 8;
 let mapW = floor(W / TILE);
 let mapH = floor(H / TILE);
+
+let gameover = false;
 
 const MAP_TILE = new Array(100);
 MAP_TILE[32] = 'block_c.png';
@@ -83,6 +89,7 @@ function start() {
     ]);
     load_map("map1-1.png");
     draw_map();
+    restart();
     // new_sprite('sonic', {
     //     'count': { frames: ['sonic0.png', 'sonic1.png', 'sonic2.png', 'sonic3.png'], fps: 10 },
     // }, 0.5, 0.5);
@@ -93,28 +100,40 @@ const PLAYER_ACCEL = 0.2;
 const PLAYER_DRAG = 0.93;
 const PLAYER_MAX_HSPEED = 20.0;
 const PLAYER_MAX_VSPEED = 20.0;
-const PLAYER_JUMP_SPEED = 5.5;
+const PLAYER_JUMP_SPEED = 4.0;
+const MEGAJUMP_FRAME_CHECK = 12;
 const GRAVITY = 0.3;
 
-let player = {
-    pos: new Vec(100, 100),
-    speed: new Vec(0, 0),
-    on_air: false,
-};
+
+let player;
+
+
+function restart() {
+    gameover = false;
+    player = {
+        pos: new Vec(100, 100),
+        speed: new Vec(0, 0),
+        on_air: false,
+        look_right: true,
+        jump_frame: 0,
+    };
+}
 
 function update_player() {
     let hit_bottom_left = get_map_at(new Vec(player.pos.x - TILE2 - 1, player.pos.y - 1));
     let hit_bottom_right = get_map_at(new Vec(player.pos.x + TILE2 + 1, player.pos.y - 1));
 
-
     if (keys['ArrowUp'] && !player.on_air) {
         player.on_air = true;
         player.speed.y = -PLAYER_JUMP_SPEED;
+        player.jump_frame = 0;
     }
     if (keys['ArrowRight'] && is_sky(hit_bottom_right)) {
         player.speed.x += PLAYER_ACCEL;
+        player.look_right = true;
     }
     if (keys['ArrowLeft'] && is_sky(hit_bottom_left)) {
+        player.look_right = false;
         player.speed.x -= PLAYER_ACCEL;
     }
     player.speed.x = clamp(player.speed.x, -PLAYER_MAX_HSPEED, PLAYER_MAX_HSPEED);
@@ -133,10 +152,11 @@ function update_player() {
     hit_bottom_left = get_map_at(new Vec(player.pos.x - TILE2, player.pos.y - 4));
 
 
-    if (is_sky(hit_corner_bottom_left) && is_sky(hit_corner_bottom_right)) {
+    if (player.pos.y >= H || (is_sky(hit_corner_bottom_left) && is_sky(hit_corner_bottom_right))) {
         player.on_air = true;
     } else if (player.speed.y > 0) {
-        player.pos.y -= player.speed.y;
+        // player.pos.y -= player.speed.y;
+        player.pos.y = floor(player.pos.y / TILE) * TILE;
         player.speed.y = 0;
         player.on_air = false;
     }
@@ -146,7 +166,15 @@ function update_player() {
     }
 
     if (player.on_air) {
-        player.speed.y += GRAVITY;
+        player.jump_frame++;
+        if (player.speed.y < 0) {
+            const megajump = player.jump_frame < MEGAJUMP_FRAME_CHECK && keys['ArrowUp'];
+            if (!megajump) {
+                player.speed.y += GRAVITY;
+            }
+        } else {
+            player.speed.y += GRAVITY;
+        }
     }
 
     if (!is_sky(hit_bottom_left) || !is_sky(hit_top_left)) {
@@ -169,15 +197,27 @@ function draw_player() {
     const x = floor(player.pos.x - scroll * TILE - TILE2);
     const y = floor(player.pos.y - TILE + 1);
 
-    canvas.draw_image('pepe.png', x, y);
+    const dir = player.look_right ? '' : '_h';
+
+    if (player.on_air) {
+        canvas.draw_image('pepe' + dir + '_jump.png', x, y);
+    } else {
+        canvas.draw_image('pepe' + dir + '.png', x, y);
+
+    }
 }
 
+
 function loop(t, dt) {
+
+    if (gameover) {
+        return loop_gameover(t, dt);
+    }
+
     canvas.fill_rect(0, 0, W, H, 6);
 
     update_player();
 
-    // scroll = clamp(player.pos.x - 100, 0, map_size);
     if (player.pos.x > 120) {
         scroll = (player.pos.x - 120) / TILE;
     } else {
@@ -186,13 +226,29 @@ function loop(t, dt) {
     draw_map();
     draw_player();
 
+    if (player.pos.y > H + 30) {
+        gameover = true;
+    }
+
     // debug
     canvas.draw_image("map1-1.png", 0, 0);
     canvas.pset(floor((player.pos.x - scroll) / TILE), floor(player.pos.y / TILE), 23)
     // canvas.draw_rect(20, 30, 0, 5, 0);
     // canvas.draw_rect(20, 31, floor(player.speed.x) * 2, 3, 0);
+    canvas.draw_text(floor(player.speed.y * 10), 20, 30, 0);
+    console.log(player.speed.y);
 
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
+    }
+}
+
+
+function loop_gameover(t, dt) {
+    canvas.fill_rect(0, 0, W, H, 0);
+    canvas.draw_text("GAME OVER", W / 2 - 30, H / 2, 2);
+    canvas.draw_text("- CLICK TO TRY AGAIN- ", W / 2 - 60, H / 2 + 20, 2);
+    if (mouse.just_left) {
+        restart();
     }
 }

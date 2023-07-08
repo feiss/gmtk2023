@@ -3,6 +3,9 @@
 body {
     font: 14px 'pixelfont';
     height: 100vh;
+    background-color: rgb(25, 25, 25);
+    overflow: hidden;
+    padding: 2rem;
 }
 
 #preload_font {
