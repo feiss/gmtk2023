@@ -10,6 +10,10 @@ function preload() {
         "block_q.png",
         "enemy_a.png",
         "enemy_b.png",
+        "pipe1.png",
+        "pipe2.png",
+        "pipe3.png",
+        "pipe4.png",
     ];
 }
 
@@ -49,6 +53,10 @@ const MAP_TILE = new Array(100);
 MAP_TILE[32] = 'block_c.png';
 MAP_TILE[4] = 'block_b.png';
 MAP_TILE[36] = 'block_a.png';
+MAP_TILE[39] = 'pipe1.png';
+MAP_TILE[40] = 'pipe2.png';
+MAP_TILE[41] = 'pipe3.png';
+MAP_TILE[42] = 'pipe4.png';
 
 function draw_map() {
     const map_scroll = floor(scroll);
@@ -85,7 +93,7 @@ const PLAYER_ACCEL = 0.2;
 const PLAYER_DRAG = 0.93;
 const PLAYER_MAX_HSPEED = 20.0;
 const PLAYER_MAX_VSPEED = 20.0;
-const PLAYER_JUMP_SPEED = 5.0;
+const PLAYER_JUMP_SPEED = 5.5;
 const GRAVITY = 0.3;
 
 let player = {
