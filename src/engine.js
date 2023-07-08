@@ -11,7 +11,7 @@ document.addEventListener("contextmenu", function (event) {
     event.preventDefault();
 });
 
-for (const event of ['start', 'loading', 'preload', 'keydown', 'keyup']) {
+for (const event of ['preload', 'loading', 'start', 'keydown', 'keyup']) {
     if (!window[event]) window[event] = () => { };
 }
 
@@ -91,14 +91,13 @@ function __preload() {
     const files = preload();
     let loaded = 0;
     let total = files.length;
-
     for (const file of files) {
         const img = new Image();
         assets[file] = img;
         img.onload = () => {
             loaded++;
             window.requestAnimationFrame(() => {
-                loading(loaded / total)
+                loading(loaded / total);
                 canvas.render();
             });
             if (loaded == total) {
@@ -126,9 +125,6 @@ function __loop(t) {
     const dt = t - __prev_t;
     __prev_t = t;
 
-    if (spriter && spriter.active) {
-        spriter.loop(t / 1000, dt / 1000);
-    }
     // game loop
     loop(t / 1000, dt / 1000);
 

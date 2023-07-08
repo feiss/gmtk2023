@@ -9,7 +9,7 @@ function set_palette(pal) {
     for (const col of pal) {
         const rgb = __hex2rgb(col);
         palette_rgb.push(rgb);
-        palette_rgb_index.push(rgb[0] + rgb[1] + rgb[2]);
+        palette_rgb_index.push(rgb[0] + ',' + rgb[1] + ',' + rgb[2]);
     }
 }
 
@@ -123,9 +123,13 @@ class Canvas {
 
     pget(x, y) {
         const pixel = this.ctx.getImageData(x, y, 1, 1).data;
-        const index_key = pixel[0] + pixel[1] + pixel[2];
+        const index_key = pixel[0] + ',' + pixel[1] + ',' + pixel[2];
         const index = palette_rgb_index.indexOf(index_key);
-        if (index == -1) return 0; else return index;
+        if (index == -1) {
+            console.warn("not found palette index of color " + index_key);
+            return 0;
+        }
+        return index;
     }
 
     draw_line(x1, y1, x2, y2, color) {
