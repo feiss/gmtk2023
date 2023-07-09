@@ -140,8 +140,9 @@ let gameover_msg;
 
 const is_sky = idx => idx == 6 || idx == 1 || idx == 2 || idx == 3 || idx == 49 || idx == 50;
 const is_floor = idx => idx == 32 || idx == 4;
-const is_hitable = idx => idx == 36 || idx == 35 || idx == 34 || idx == 33;
+const is_hitable = idx => idx == 36 || idx == 37 || idx == 35 || idx == 34 || idx == 33;
 const is_coin = idx => idx == 35;
+const is_megacoin = idx => idx == 37;
 const is_mushroom = idx => idx == 34 || idx == 33;
 
 const MAP_TILE = new Array(100);
@@ -155,6 +156,7 @@ MAP_TILE[34] = 'block_q';
 MAP_TILE[35] = 'block_q';
 MAP_TILE[99] = 'block_q_dead.png';
 MAP_TILE[36] = 'block_a.png';
+MAP_TILE[37] = 'block_a.png';
 MAP_TILE[39] = 'pipe1.png';
 MAP_TILE[40] = 'pipe2.png';
 MAP_TILE[41] = 'pipe3.png';
@@ -217,7 +219,7 @@ function start() {
     new_sprite('coin', { 'count': { frames: ['coin1.png', 'coin2.png', 'coin3.png', 'coin2.png'], fps: 10 } }, 0.5, 1);
 
     restart(0);
-    gameover_msg = "PEPE";
+    gameover_msg = "FARMER PEPE";
     gameover = true;
     gameover_t = -10;
 }
@@ -300,7 +302,6 @@ function keydown(key) {
         if (gameover) {
             sounds['song'].fastSeek(0);
             sounds['song'].play();
-            console.log(win, gameover);
             restart();
             return;
         }
@@ -322,6 +323,17 @@ function keydown(key) {
 
 function hit_block(block) {
     let kind = map[block.x][block.y];
+    if (is_megacoin(kind)) {
+        player.block = block;
+        player.block_time = BRICK_SHAKE_TIME;
+        player.points += 50;
+        add_extra('coin', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(200 + Math.random() * 100));
+        if (rnd() < 0.2) {
+            map[block.x][block.y] = 99;
+        }
+        sounds['coin_pick'].play();
+        sounds['tump'].play();
+    }
     if (is_coin(kind)) {
         player.block = block;
         player.block_time = BRICK_SHAKE_TIME;
