@@ -233,6 +233,7 @@ const BRICK_SHAKE_TIME = 8;
 
 let player, enemies, extras;
 let enemies_to_feed;
+let show_help = true;
 
 function restart() {
 
@@ -243,6 +244,7 @@ function restart() {
     gameover_t = 0;
     game_speed = 1;
     gameover_msg = "GAME OVER";
+    show_help = true;
 
     player = {
         pos: new Vec(100, 150),
@@ -289,6 +291,7 @@ function keydown(key) {
             restart();
             return;
         }
+        show_help = false;
         if (player.inventory) {
             const dir = player.look_right ? 1 : -1;
             add_extra(player.inventory, player.pos.x, player.pos.y - TILE, dir * 100 + player.speed.x, player.speed.y - 100);
@@ -665,6 +668,10 @@ function draw_extras() {
             if (spr.type == 'mushroom.png') {
                 draw('block_q_dead.png', ox, oy);
             }
+        }
+
+        if ((spr.type == 'mushroom2.png' || spr.type == 'coin') && show_help) {
+            canvas.draw_text("[SPACE]", x, y - TILE * 1.5, 1, 'center');
         }
     }
 }
