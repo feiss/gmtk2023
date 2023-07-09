@@ -1,7 +1,7 @@
 // Diego F. Goberna - http://diegofg.com - GMTK 2023
 
 
-const MUSIC_VOLUME = 0.7;
+const MUSIC_VOLUME = 0.5;
 let sounds = {};
 
 function preload() {
