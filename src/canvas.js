@@ -71,7 +71,7 @@ class Canvas {
     draw_text(text, x, y, color, align) {
         this.ctx.fillStyle = palette[color];
         this.ctx.textAlign = align || 'left';
-        this.ctx.fillText(text, x, y);
+        this.ctx.fillText(text, floor(x), floor(y));
     }
 
     draw_circle(x, y, r, color) {
@@ -114,6 +114,10 @@ class Canvas {
 
     draw_image(img, x, y, flip) {
         let asset = typeof img === 'string' ? assets[img] : img;
+        if (asset === undefined) {
+            console.warn("No image found: ", img);
+            return;
+        }
         if (flip === true) {
             this.ctx.scale(-1, 1);
             this.ctx.drawImage(asset, -x - asset.width, y);

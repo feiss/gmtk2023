@@ -27,6 +27,8 @@ function preload() {
 
     return [
         "map1-1.png",
+        "speech_coin.png",
+        "speech_mushroom2.png.png",
         "pepe.png",
         "pepe_jump.png",
         "pepe_run1.png",
@@ -81,6 +83,7 @@ function loading(progress) {
 }
 
 function draw(item, x, y, flip) {
+
     if (item.indexOf('.png') == -1) {
         canvas.draw_sprite(item, x, y, flip);
     } else {
@@ -263,7 +266,8 @@ function restart() {
                     pos: item.pos,
                     speed: -GOOMBA_SPEED,
                     alive: true,
-                    life: 3,
+                    wants: rnd() < 0.5 ? 'mushroom2.png' : 'coin',
+                    show_wants: false,
                 });
                 break;
         }
@@ -461,7 +465,7 @@ function update_enemies(t, dt) {
         const enemy = enemies[i];
         if (!enemy.alive) continue;
 
-        enemy.pos.x += enemy.speed * enemy.life * dt;
+        enemy.pos.x += enemy.speed * dt;
 
         if (enemy.pos.y >= H) {
             enemy.pos.y += 1;
@@ -482,6 +486,7 @@ function update_enemies(t, dt) {
 
             // check player
             const distance = enemy.pos.distance(player.pos);
+            enemy.show_wants = distance < TILE * 3;
             if (distance < TILE * 1.2) {
                 if (abs(enemy.pos.y - player.pos.y) > abs(enemy.pos.x - player.pos.x)) {
                     enemy.alive = false;
@@ -493,20 +498,16 @@ function update_enemies(t, dt) {
                 }
             }
 
-            if (check_inside_screen(enemy.pos.x - scroll * TILE, enemy.pos.y)) {
-                enemy.life -= dt * 0.1;
-                if (enemy.life < 1) {
-                    enemy.alive = false;
-                }
-            }
-
             for (let e = 0; e < extras.length; e++) {
                 const extra = extras[e];
                 const distance = enemy.pos.distance(extra.pos);
                 if (distance < TILE) {
                     player.points += 200;
-                    enemy.life++;
-                    add_extra('heart.png', enemy.pos.x - TILE2, enemy.pos.y - TILE * 1.5, 0, -50, 1);
+                    if (extra.type == enemy.wants) {
+                        enemy.wants = null;
+                        enemy.speed *= -1;
+                        add_extra('heart.png', enemy.pos.x - TILE2, enemy.pos.y - TILE * 1.5, 0, -50, 1);
+                    }
                     sounds['coin_pick'].play();
                     extras.splice(e, 1);
                     break;
@@ -536,13 +537,19 @@ function draw_enemies() {
             if (enemy.alive) {
                 draw(enemy.type, x, y, enemy.speed > 0);
                 if (enemy.type == 'a') {
-                    const life = Math.min(3, floor(enemy.life));
+                    const life = enemy.wants === null ? 3 : 2;
                     draw('enemy_' + enemy.type + '_life' + life + '.png', x - TILE2, y - TILE);
+                }
+                if (enemy.show_wants && enemy.wants !== null) {
+                    const speech = new Vec(x - TILE2, y - TILE * 2.4);
+                    draw('speech_' + enemy.wants + '.png', speech.x, speech.y);
                 }
             } else {
                 draw('enemy_' + enemy.type + '_dead.png', x - TILE2, y - TILE);
             }
         }
+
+
     }
 }
 
@@ -550,6 +557,8 @@ function draw_enemies() {
 function add_extra(type, x, y, sx, sy, life) {
     extras.push({
         type: type,
+        bounciness: type == 'coin' ? 1.0 : 0.2,
+        drag: type == 'coin' ? 0.5 : 0.99,
         orig_pos: new Vec(x, y),
         pos: new Vec(x, y),
         speed: new Vec(sx, sy),
@@ -565,38 +574,54 @@ function update_extras(t, dt) {
         const spr = extras[i];
         spr.pos.x += spr.speed.x * dt;
         spr.pos.y += spr.speed.y * dt;
-        if (spr.type != 'heart.png' && spr.type != 'mushroom.png' && spr.type != 'mushroom2.png') {
+        if (spr.type != 'heart.png' && spr.type != 'mushroom.png') {
             spr.speed.y += GRAVITY * dt;
         }
-        if (spr.type == 'coin') {
-            if (spr.speed.y != 0 && (!is_sky(get_map_at(spr.pos)) || !is_sky(get_map_at(new Vec(spr.pos.x, spr.pos.y - TILE))))) {
-                spr.speed.y *= -0.5;
-                spr.pos.y += spr.speed.y * dt;
-                spr.speed.x *= 0.5;
-                if (spr.speed.y > -40) {
-                    spr.speed.set(0, 0);
-                } else {
-                    sounds['coin_jump'].play();
-
-                }
-            }
-
-        }
-        if (spr.type == 'mushroom2.png') {
-            const hit_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y - TILE2));
-            const hit_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y - TILE2));
+        if (spr.type == 'coin' || spr.type == 'mushroom2.png') {
+            const hit_left = get_map_at(new Vec(spr.pos.x - TILE2 + 2, spr.pos.y - TILE2));
+            const hit_right = get_map_at(new Vec(spr.pos.x + TILE2 - 2, spr.pos.y - TILE2));
             const hit_bottom_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y));
             const hit_bottom_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y));
 
-            if (!is_sky(hit_left) || !is_sky(hit_right) || spr.pos.x < 1) {
+
+
+            if (spr.speed.y != 0 && !is_sky(hit_bottom_left) && !is_sky(hit_bottom_right)) {
+                spr.speed.y *= -0.5 * spr.bounciness;
+                spr.pos.y += spr.speed.y * dt;
+                spr.speed.x *= spr.drag;
+                if (spr.speed.y > -40) {
+                    spr.speed.y = 0;
+                } else {
+                    if (spr.type == 'coin') {
+                        sounds['coin_jump'].play();
+                    } else {
+                        // sounds['mushroom_jump'].play();
+                    }
+
+                }
+            }
+            if ((!is_sky(hit_left) && spr.speed.x < 0) || (!is_sky(hit_right) && spr.speed.x > 0) || spr.pos.x < 1) {
                 spr.speed.x *= -1;
                 spr.pos.x += spr.speed.x * dt;
             }
 
-            if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right)) {
-                spr.pos.y += 100 * dt;
-            }
         }
+        // if (spr.type == 'mushroom2.png') {
+        //     const hit_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y - TILE2));
+        //     const hit_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y - TILE2));
+        //     const hit_bottom_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y));
+        //     const hit_bottom_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y));
+
+        //     if (!is_sky(hit_left) || !is_sky(hit_right) || spr.pos.x < 1) {
+        //         spr.speed.x *= -1;
+        //         spr.pos.x += spr.speed.x * dt;
+        //     }
+
+        //     if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right)) {
+        //         spr.pos.y += 100 * dt;
+        //         console.log('falling', spr.pos.y);
+        //     }
+        // }
 
         if (spr.type == 'coin' || spr.type == 'mushroom2.png') {
             const distance = spr.pos.distance(player.pos);
