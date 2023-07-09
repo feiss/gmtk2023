@@ -48,17 +48,18 @@ function preload() {
         "coin2.png",
         "coin3.png",
         "heart.png",
+
+        "mountain1.png",
+        "cloud1.png",
+        "cloud2.png",
+        "cloud3.png",
+        "bush1.png",
     ];
 }
 
 let map;
 let map_items;
 let map_size;
-
-const is_sky = idx => idx == 6 || idx == 1 || idx == 2;
-const is_floor = idx => idx == 32 || idx == 4;
-const is_hitable = idx => idx == 36 || idx == 35;
-const is_coin = idx => idx == 35;
 
 function loading(progress) {
     canvas.fill_rect(10, H / 2, floor(progress * (W - 20)), 1, 3);
@@ -106,9 +107,18 @@ let gameover_t = 0;
 let game_speed = 1;
 let gameover_msg;
 
+
+const is_sky = idx => idx == 6 || idx == 1 || idx == 2 || idx == 3 || idx == 49 || idx == 50;
+const is_floor = idx => idx == 32 || idx == 4;
+const is_hitable = idx => idx == 36 || idx == 35;
+const is_coin = idx => idx == 35;
+
 const MAP_TILE = new Array(100);
 MAP_TILE[32] = 'block_c.png';
 MAP_TILE[4] = 'block_b.png';
+MAP_TILE[1] = 'cloud1.png';
+MAP_TILE[2] = 'cloud2.png';
+MAP_TILE[3] = 'cloud3.png';
 MAP_TILE[35] = 'block_q';
 MAP_TILE[99] = 'block_q_dead.png';
 MAP_TILE[36] = 'block_a.png';
@@ -116,17 +126,19 @@ MAP_TILE[39] = 'pipe1.png';
 MAP_TILE[40] = 'pipe2.png';
 MAP_TILE[41] = 'pipe3.png';
 MAP_TILE[42] = 'pipe4.png';
+MAP_TILE[49] = 'mountain1.png';
+MAP_TILE[50] = 'bush1.png';
 
 function draw_map() {
     const map_scroll = floor(scroll);
     const scroll_frac = scroll - map_scroll;
     let offset = new Vec(0, 0);
 
-    for (let x = 0; x < mapW + 1; x++) {
+    for (let x = -5; x < mapW + 1; x++) {
         for (let y = 0; y < mapH; y++) {
             offset.x = 0;
             offset.y = 0;
-            const xx = x + map_scroll;
+            const xx = Math.max(0, x + map_scroll);
             const img = MAP_TILE[map[xx][y]];
 
 
@@ -598,10 +610,10 @@ function loop(t, dt) {
         canvas.draw_text("WORLD 1 - 1", W / 2 - 30, H / 2, 2);
     }
 
-    canvas.draw_text("PEPE", 40, 20, 2);
-    canvas.draw_text(player.points, 62, 30, 2, 'right');
-    canvas.draw_text("TIME", W - 70, 20, 2);
-    canvas.draw_text(300 - floor(t), W - 50, 30, 2, 'right');
+    canvas.draw_text("PEPE", 60, 20, 2, 'right');
+    canvas.draw_text(player.points, 60, 30, 2, 'right');
+    canvas.draw_text("TIME", W - 30, 20, 2, 'right');
+    canvas.draw_text(300 - floor(t), W - 30, 30, 2, 'right');
 
     if (floor(t) >= 300) {
         gameover = true;
