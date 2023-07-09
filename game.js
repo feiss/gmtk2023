@@ -16,6 +16,9 @@ function preload() {
         sounds[sound] = new Audio('assets/' + sound + '.wav');
     }
 
+    sounds['song'] = new Audio('assets/song.ogg');
+
+
     return [
         "map1-1.png",
         "pepe.png",
@@ -260,6 +263,8 @@ function restart() {
         }
 
     }
+
+    sounds['song'].play();
 }
 
 function add_extra(type, x, y, sx, sy, life) {
