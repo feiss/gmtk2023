@@ -48,12 +48,13 @@ function preload() {
         "block_q_dead.png",
         "enemy_a1.png",
         "enemy_a2.png",
-        "enemy_a_life1.png",
-        "enemy_a_life2.png",
-        "enemy_a_life3.png",
+        "enemy_a_angry.png",
+        "enemy_a_happy.png",
         "enemy_a_dead.png",
         "enemy_b1.png",
         "enemy_b2.png",
+        "enemy_b_angry.png",
+        "enemy_b_happy.png",
         "enemy_b_dead.png",
         "pipe1.png",
         "pipe2.png",
@@ -215,7 +216,7 @@ function start() {
     new_sprite('block_break', { 'count': { frames: ['block_break1.png', 'block_break2.png'], fps: 10 } }, 0.5, 0.5);
     new_sprite('coin', { 'count': { frames: ['coin1.png', 'coin2.png', 'coin3.png', 'coin2.png'], fps: 10 } }, 0.5, 1);
 
-    restart();
+    restart(0);
     gameover_msg = "PEPE";
     gameover = true;
     gameover_t = -10;
@@ -235,11 +236,13 @@ const BRICK_SHAKE_TIME = 8;
 let player, enemies, extras;
 let enemies_to_feed;
 let show_help = true;
+let gametime = 0;
 
-function restart() {
+function restart(t) {
 
     load_map("map1-1.png");
 
+    gametime = 0;
     win = false;
     gameover = false;
     gameover_t = 0;
@@ -260,6 +263,15 @@ function restart() {
         inventory: null,
         dead: false,
     };
+
+    let want_pool = [
+        'mushroom2.png',
+        'mushroom2.png',
+        'mushroom2.png',
+        'mushroom2.png',
+        'mushroom2.png',
+        'mushroom2.png',
+    ];
 
     extras = [];
     enemies = [];
@@ -548,9 +560,11 @@ function draw_enemies() {
         if (check_inside_screen(x, y)) {
             if (enemy.alive) {
                 draw(enemy.type, x, y, enemy.speed > 0);
+                const mood = enemy.wants === null ? '_happy' : '_angry';
                 if (enemy.type == 'a') {
-                    const life = enemy.wants === null ? 3 : 2;
-                    draw('enemy_' + enemy.type + '_life' + life + '.png', x - TILE2, y - TILE);
+                    draw('enemy_' + enemy.type + mood + '.png', x - TILE2, y - TILE);
+                } else {
+                    draw('enemy_' + enemy.type + mood + '.png', x - TILE2, y - TILE - TILE2, enemy.speed > 0);
                 }
                 if (enemy.show_wants && enemy.wants !== null) {
                     const speech = new Vec(x - TILE2, y - TILE * 2.4);
@@ -753,7 +767,8 @@ function loop(t, dt) {
     canvas.draw_text("TIME", W - 30, 20, 2, 'right');
     canvas.draw_text(300 - floor(t), W - 30, 30, 2, 'right');
 
-    if (floor(t) >= 300) {
+    gametime += dt;
+    if (floor(gametime) >= 300) {
         game_over(t);
         gameover_msg = "TIME OUT!";
     }
