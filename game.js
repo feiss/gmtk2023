@@ -22,7 +22,7 @@ function preload() {
 
     sounds['song'] = new Audio('assets/song.ogg');
     sounds['song'].loop = true;
-    sounds['song'].volume = 0.0;
+    sounds['song'].volume = MUSIC_VOLUME;
 
     sounds['win'] = new Audio('assets/win.ogg');
 
