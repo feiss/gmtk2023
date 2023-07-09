@@ -1,5 +1,7 @@
 // Diego F. Goberna - http://diegofg.com - GMTK 2023
 
+
+const MUSIC_VOLUME = 0.7;
 let sounds = {};
 
 function preload() {
@@ -8,15 +10,19 @@ function preload() {
         'click',
         'coin',
         'coin_pick',
+        'coin_jump',
         'jump',
         'pickup',
         'tump',
         'mushroom',
+        'gameover',
     ]) {
         sounds[sound] = new Audio('assets/' + sound + '.wav');
     }
 
     sounds['song'] = new Audio('assets/song.ogg');
+    sounds['song'].loop = true;
+    sounds['song'].volume = 0.0;
 
 
     return [
@@ -264,22 +270,17 @@ function restart() {
 
     }
 
-    sounds['song'].play();
 }
 
-function add_extra(type, x, y, sx, sy, life) {
-    extras.push({
-        type: type,
-        orig_pos: new Vec(x, y),
-        pos: new Vec(x, y),
-        speed: new Vec(sx, sy),
-        life: life,
-        time: 0,
-    });
-}
 
 function keydown(key) {
     if (key == ' ') {
+        if (gameover) {
+            sounds['song'].fastSeek(0);
+            sounds['song'].play();
+            restart();
+            return;
+        }
         if (player.inventory) {
             const dir = player.look_right ? 1 : -1;
             add_extra(player.inventory, player.pos.x, player.pos.y - TILE, dir * 100 + player.speed.x, player.speed.y - 100);
@@ -288,6 +289,9 @@ function keydown(key) {
         } else {
             player.wants_to_pick = true;
         }
+    }
+    if (key == 'm') {
+        sounds['song'].volume = sounds['song'].volume == 0 ? MUSIC_VOLUME : 0;
     }
 }
 
@@ -305,7 +309,7 @@ function hit_block(block) {
     } else if (is_mushroom(kind)) {
         player.block = block;
         player.block_time = BRICK_SHAKE_TIME;
-        add_extra('mushroom.png', block.x * TILE, block.y * TILE, 0, -10);
+        add_extra('mushroom.png', block.x * TILE + TILE2, block.y * TILE + TILE, 0, -10);
         map[block.x][block.y] = 99;
         sounds['tump'].play();
         sounds['mushroom'].play();
@@ -439,8 +443,10 @@ function draw_player(dt) {
     }
 
     if (player.inventory) {
+        const offset_x = player.inventory.indexOf('.png') == -1 ? 0 : TILE2;
         const offset_y = player.inventory.indexOf('.png') == -1 ? TILE2 : -TILE2;
-        draw(player.inventory, x + (flip ? 0 : TILE), y + offset_y);
+
+        draw(player.inventory, x + (flip ? -offset_x : TILE - offset_x), y + offset_y);
     }
 }
 
@@ -481,9 +487,9 @@ function update_enemies(t, dt) {
                     enemy.alive = false;
                     player.speed.y = -PLAYER_JUMP_SPEED * 0.75;
                 } else {
-                    if (distance < TILE * 0.8)
-                        gameover = true;
-                    gameover_t = t;
+                    if (distance < TILE * 0.8) {
+                        game_over(t);
+                    }
                 }
             }
 
@@ -541,6 +547,17 @@ function draw_enemies() {
 }
 
 
+function add_extra(type, x, y, sx, sy, life) {
+    extras.push({
+        type: type,
+        orig_pos: new Vec(x, y),
+        pos: new Vec(x, y),
+        speed: new Vec(sx, sy),
+        life: life,
+        time: 0,
+    });
+}
+
 function update_extras(t, dt) {
     let remove = [];
     for (let i = 0; i < extras.length; i++) {
@@ -556,17 +573,20 @@ function update_extras(t, dt) {
                 spr.speed.y *= -0.5;
                 spr.pos.y += spr.speed.y * dt;
                 spr.speed.x *= 0.5;
-                if (spr.speed.y > -10) {
+                if (spr.speed.y > -40) {
                     spr.speed.set(0, 0);
+                } else {
+                    sounds['coin_jump'].play();
+
                 }
             }
 
         }
         if (spr.type == 'mushroom2.png') {
-            const hit_left = get_map_at(new Vec(spr.pos.x + 1, spr.pos.y + TILE2));
-            const hit_right = get_map_at(new Vec(spr.pos.x + TILE - 1, spr.pos.y + TILE2));
-            const hit_bottom_left = get_map_at(new Vec(spr.pos.x + 1, spr.pos.y + TILE));
-            const hit_bottom_right = get_map_at(new Vec(spr.pos.x + TILE - 1, spr.pos.y + TILE));
+            const hit_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y - TILE2));
+            const hit_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y - TILE2));
+            const hit_bottom_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y));
+            const hit_bottom_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y));
 
             if (!is_sky(hit_left) || !is_sky(hit_right) || spr.pos.x < 1) {
                 spr.speed.x *= -1;
@@ -614,10 +634,14 @@ function update_extras(t, dt) {
 function draw_extras() {
     for (let i = 0; i < extras.length; i++) {
         const spr = extras[i];
-        const x = floor(spr.pos.x - scroll * TILE);
-        const y = floor(spr.pos.y);
-        const ox = floor(spr.orig_pos.x - scroll * TILE);
-        const oy = floor(spr.orig_pos.y);
+        let x = floor(spr.pos.x - scroll * TILE);
+        let y = floor(spr.pos.y);
+        const ox = floor(spr.orig_pos.x - scroll * TILE - TILE2);
+        const oy = floor(spr.orig_pos.y - TILE);
+        if (spr.type.indexOf('.png') != -1) {
+            x -= TILE2;
+            y -= TILE;
+        }
 
         if (check_inside_screen(x, y)) {
             draw(spr.type, x, y);
@@ -659,7 +683,7 @@ function loop(t, dt) {
     draw_player(dt);
 
     if (player.pos.y > H + 30) {
-        gameover = true;
+        game_over(t);
     }
 
     // debug
@@ -678,7 +702,7 @@ function loop(t, dt) {
     canvas.draw_text(300 - floor(t), W - 30, 30, 2, 'right');
 
     if (floor(t) >= 300) {
-        gameover = true;
+        game_over(t);
         gameover_msg = "TIME OUT!";
     }
 
@@ -698,15 +722,22 @@ function loop(t, dt) {
 
 }
 
+function game_over(t) {
+    sounds['song'].pause();
+    sounds['gameover'].play();
+    gameover = true;
+    gameover_t = t;
+}
 
 function loop_gameover(t, dt) {
+    // make sure song is loaded
+    if (sounds['song'].readyState != 4) {
+        return;
+    }
+
     if (t - gameover_t > 1) {
         canvas.fill_rect(0, 0, W, H, 0);
         canvas.draw_text(gameover_msg, W / 2, H / 2, 2, 'center');
-        canvas.draw_text("- CLICK TO RESTART- ", W / 2, H / 2 + 20, 2, 'center');
-        if (mouse.just_left) {
-            sounds['click'].play();
-            restart();
-        }
+        canvas.draw_text("- PRESS SPACE TO RESTART- ", W / 2, H / 2 + 20, 2, 'center');
     }
 }
