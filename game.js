@@ -3,12 +3,17 @@
 let sounds = {};
 
 function preload() {
-    sounds['block'] = new Audio('assets/block.wav');
-    sounds['click'] = new Audio('assets/click.wav');
-    sounds['coin'] = new Audio('assets/coin.wav');
-    sounds['coin_pick'] = new Audio('assets/coin_pick.wav');
-    sounds['jump'] = new Audio('assets/jump.wav');
-    sounds['pickup'] = new Audio('assets/pickup.wav');
+    for (const sound of [
+        'block',
+        'click',
+        'coin',
+        'coin_pick',
+        'jump',
+        'pickup',
+        'tump',
+    ]) {
+        sounds[sound] = new Audio('assets/' + sound + '.wav');
+    }
 
     return [
         "map1-1.png",
@@ -260,14 +265,17 @@ function hit_block(block) {
         player.points += 50;
         add_extra('coin', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(200 + Math.random() * 100));
         sounds['coin_pick'].play();
+        sounds['tump'].play();
 
         map[block.x][block.y] = 99;
     } else if (is_hitable(kind)) {
-        for (let i = 0; i < 4; i++) {
-            add_extra('block_break', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(100 + Math.random() * 300));
-            map[block.x][block.y] = 6;
-            sounds['block'].play();
-        }
+        // for (let i = 0; i < 4; i++) {
+        //     add_extra('block_break', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(100 + Math.random() * 300));
+        // }
+        // map[block.x][block.y] = 6;
+        player.block = block;
+        player.block_time = BRICK_SHAKE_TIME;
+        sounds['tump'].play();
         player.points += 50;
     }
 
@@ -474,7 +482,7 @@ function draw_enemies() {
             if (enemy.alive) {
                 canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
                 if (enemy.type == 'a') {
-                    const life = floor(enemy.life);
+                    const life = Math.min(3, floor(enemy.life));
                     canvas.draw_image('enemy_' + enemy.type + '_life' + life + '.png', x - TILE2, y - TILE);
                 }
             } else {
