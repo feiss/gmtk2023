@@ -176,6 +176,9 @@ function start() {
     new_sprite('coin', { 'count': { frames: ['coin1.png', 'coin2.png', 'coin3.png', 'coin2.png'], fps: 10 } }, 0.5, 1);
 
     restart();
+    gameover_msg = "PEPE";
+    gameover = true;
+    gameover_t = -10;
 }
 
 const PLAYER_ACCEL = 13;
