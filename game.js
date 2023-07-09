@@ -63,6 +63,7 @@ function preload() {
         "coin2.png",
         "coin3.png",
         "heart.png",
+        "heart_white.png",
         "mushroom.png",
         "mushroom2.png",
 
@@ -747,6 +748,8 @@ function loop(t, dt) {
 
     canvas.draw_text("PEPE", 60, 20, 2, 'right');
     canvas.draw_text(player.points, 60, 30, 2, 'right');
+    canvas.draw_image("heart_white.png", W / 2 - 9, 12);
+    canvas.draw_text((enemies.length - enemies_to_feed) + '/' + enemies.length, W / 2, 30, 2, 'right');
     canvas.draw_text("TIME", W - 30, 20, 2, 'right');
     canvas.draw_text(300 - floor(t), W - 30, 30, 2, 'right');
 
