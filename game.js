@@ -1,6 +1,15 @@
 // Diego F. Goberna - http://diegofg.com - GMTK 2023
 
+let sounds = {};
+
 function preload() {
+    sounds['block'] = new Audio('assets/block.wav');
+    sounds['click'] = new Audio('assets/click.wav');
+    sounds['coin'] = new Audio('assets/coin.wav');
+    sounds['coin_pick'] = new Audio('assets/coin_pick.wav');
+    sounds['jump'] = new Audio('assets/jump.wav');
+    sounds['pickup'] = new Audio('assets/pickup.wav');
+
     return [
         "map1-1.png",
         "pepe.png",
@@ -234,6 +243,7 @@ function keydown(key) {
         if (player.inventory) {
             const dir = player.look_right ? 1 : -1;
             add_extra(player.inventory, player.pos.x, player.pos.y - TILE, dir * 100 + player.speed.x, player.speed.y - 100);
+            sounds['pickup'].play();
             player.inventory = null;
         } else {
             player.wants_to_pick = true;
@@ -249,12 +259,14 @@ function hit_block(block) {
         player.block_time = BRICK_SHAKE_TIME;
         player.points += 50;
         add_extra('coin', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(200 + Math.random() * 100));
+        sounds['coin_pick'].play();
 
         map[block.x][block.y] = 99;
     } else if (is_hitable(kind)) {
         for (let i = 0; i < 4; i++) {
             add_extra('block_break', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(100 + Math.random() * 300));
             map[block.x][block.y] = 6;
+            sounds['block'].play();
         }
         player.points += 50;
     }
@@ -270,6 +282,8 @@ function update_player(dt) {
         player.on_air = true;
         player.speed.y = -PLAYER_JUMP_SPEED;
         player.jump_frame = 0;
+        sounds['jump'].play();
+
     }
     if (keys['ArrowRight'] && is_sky(hit_bottom_right)) {
         player.speed.x += PLAYER_ACCEL;
@@ -375,6 +389,8 @@ function draw_player(dt) {
 
 function pick(spr) {
     player.inventory = spr.type;
+    sounds['pickup'].play();
+
 }
 
 
@@ -429,6 +445,7 @@ function update_enemies(t, dt) {
                     player.points += 200;
                     enemy.life++;
                     add_extra('heart.png', enemy.pos.x - TILE2, enemy.pos.y - TILE * 1.5, 0, -50, 1);
+                    sounds['coin_pick'].play();
                     extras.splice(e, 1);
                     break;
                 }
@@ -603,6 +620,7 @@ function loop_gameover(t, dt) {
         canvas.draw_text(gameover_msg, W / 2, H / 2, 2, 'center');
         canvas.draw_text("- CLICK TO RESTART- ", W / 2, H / 2 + 20, 2, 'center');
         if (mouse.just_left) {
+            sounds['click'].play();
             restart();
         }
     }
