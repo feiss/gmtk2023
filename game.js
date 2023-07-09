@@ -776,13 +776,13 @@ function loop(t, dt) {
         gameover_msg = "TIME OUT!";
     }
 
-    if (abs(mouse.wheel) > 1) {
-        game_speed -= mouse.wheel / 2000;
-        game_speed = clamp(game_speed, -3, 3);
-    }
-    if (game_speed != 1) {
-        canvas.draw_text("x" + floor(game_speed * 10) / 10, 5, 10, 24);
-    }
+    // if (abs(mouse.wheel) > 1) {
+    //     game_speed -= mouse.wheel / 2000;
+    //     game_speed = clamp(game_speed, -3, 3);
+    // }
+    // if (game_speed != 1) {
+    //     canvas.draw_text("x" + floor(game_speed * 10) / 10, 5, 10, 24);
+    // }
 
     if (mouse.left && mouse.prevx) {
         canvas.draw_line(mouse.prevx, mouse.prevy, mouse.x, mouse.y, 6);
