@@ -11,6 +11,7 @@ function preload() {
         'jump',
         'pickup',
         'tump',
+        'mushroom',
     ]) {
         sounds[sound] = new Audio('assets/' + sound + '.wav');
     }
@@ -22,6 +23,7 @@ function preload() {
         "pepe_run1.png",
         "pepe_run2.png",
         "pepe_run3.png",
+        "pepe_dead.png",
         "block_break1.png",
         "block_break2.png",
         "block_a.png",
@@ -48,7 +50,11 @@ function preload() {
         "coin2.png",
         "coin3.png",
         "heart.png",
+        "mushroom.png",
+        "mushroom2.png",
 
+
+        "sky.png",
         "mountain1.png",
         "cloud1.png",
         "cloud2.png",
@@ -63,6 +69,14 @@ let map_size;
 
 function loading(progress) {
     canvas.fill_rect(10, H / 2, floor(progress * (W - 20)), 1, 3);
+}
+
+function draw(item, x, y, flip) {
+    if (item.indexOf('.png') == -1) {
+        canvas.draw_sprite(item, x, y, flip);
+    } else {
+        canvas.draw_image(item, x, y, flip);
+    }
 }
 
 
@@ -110,8 +124,9 @@ let gameover_msg;
 
 const is_sky = idx => idx == 6 || idx == 1 || idx == 2 || idx == 3 || idx == 49 || idx == 50;
 const is_floor = idx => idx == 32 || idx == 4;
-const is_hitable = idx => idx == 36 || idx == 35;
+const is_hitable = idx => idx == 36 || idx == 35 || idx == 34 || idx == 33;
 const is_coin = idx => idx == 35;
+const is_mushroom = idx => idx == 34 || idx == 33;
 
 const MAP_TILE = new Array(100);
 MAP_TILE[32] = 'block_c.png';
@@ -119,6 +134,8 @@ MAP_TILE[4] = 'block_b.png';
 MAP_TILE[1] = 'cloud1.png';
 MAP_TILE[2] = 'cloud2.png';
 MAP_TILE[3] = 'cloud3.png';
+MAP_TILE[33] = 'sky.png';
+MAP_TILE[34] = 'block_q';
 MAP_TILE[35] = 'block_q';
 MAP_TILE[99] = 'block_q_dead.png';
 MAP_TILE[36] = 'block_a.png';
@@ -153,11 +170,7 @@ function draw_map() {
             }
 
             if (img) {
-                let draw_func = canvas.draw_image.bind(canvas);
-                if (img.indexOf('.png') == -1) {
-                    draw_func = canvas.draw_sprite.bind(canvas);
-                }
-                draw_func(img,
+                draw(img,
                     floor((x - scroll_frac) * TILE + offset.x),
                     floor(y * TILE + offset.y));
             }
@@ -218,7 +231,7 @@ function restart() {
     gameover_msg = "GAME OVER";
 
     player = {
-        pos: new Vec(100, 150),
+        pos: new Vec(110, 150),
         speed: new Vec(0, 0),
         on_air: false,
         look_right: true,
@@ -252,9 +265,11 @@ function restart() {
 function add_extra(type, x, y, sx, sy, life) {
     extras.push({
         type: type,
+        orig_pos: new Vec(x, y),
         pos: new Vec(x, y),
         speed: new Vec(sx, sy),
         life: life,
+        time: 0,
     });
 }
 
@@ -279,10 +294,17 @@ function hit_block(block) {
         player.block_time = BRICK_SHAKE_TIME;
         player.points += 50;
         add_extra('coin', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(200 + Math.random() * 100));
+        map[block.x][block.y] = 99;
         sounds['coin_pick'].play();
         sounds['tump'].play();
-
+    } else if (is_mushroom(kind)) {
+        player.block = block;
+        player.block_time = BRICK_SHAKE_TIME;
+        add_extra('mushroom.png', block.x * TILE, block.y * TILE, 0, -10);
         map[block.x][block.y] = 99;
+        sounds['tump'].play();
+        sounds['mushroom'].play();
+
     } else if (is_hitable(kind)) {
         // for (let i = 0; i < 4; i++) {
         //     add_extra('block_break', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(100 + Math.random() * 300));
@@ -394,26 +416,32 @@ function draw_player(dt) {
 
     const flip = !player.look_right;
 
+
+    if (gameover) {
+        draw('pepe_dead.png', x, y);
+        return;
+    }
+
     if (player.on_air) {
-        canvas.draw_image('pepe_jump.png', x, y, flip);
+        draw('pepe_jump.png', x, y, flip);
     } else {
         if (Math.abs(player.speed.x) < 0.1) {
-            canvas.draw_image('pepe.png', x, y, flip);
+            draw('pepe.png', x, y, flip);
         } else {
-            canvas.draw_sprite('run', x, y, flip);
+            draw('run', x, y, flip);
             update_sprite('run', Math.abs(player.speed.x * dt));
         }
     }
 
     if (player.inventory) {
-        canvas.draw_sprite(player.inventory, x + (flip ? 0 : TILE), y + TILE2);
+        const offset_y = player.inventory.indexOf('.png') == -1 ? TILE2 : -TILE2;
+        draw(player.inventory, x + (flip ? 0 : TILE), y + offset_y);
     }
 }
 
 function pick(spr) {
     player.inventory = spr.type;
     sounds['pickup'].play();
-
 }
 
 
@@ -495,13 +523,13 @@ function draw_enemies() {
         const y = floor(enemy.pos.y);
         if (check_inside_screen(x, y)) {
             if (enemy.alive) {
-                canvas.draw_sprite(enemy.type, x, y, enemy.speed > 0);
+                draw(enemy.type, x, y, enemy.speed > 0);
                 if (enemy.type == 'a') {
                     const life = Math.min(3, floor(enemy.life));
-                    canvas.draw_image('enemy_' + enemy.type + '_life' + life + '.png', x - TILE2, y - TILE);
+                    draw('enemy_' + enemy.type + '_life' + life + '.png', x - TILE2, y - TILE);
                 }
             } else {
-                canvas.draw_image('enemy_' + enemy.type + '_dead.png', x - TILE2, y - TILE);
+                draw('enemy_' + enemy.type + '_dead.png', x - TILE2, y - TILE);
             }
         }
     }
@@ -515,7 +543,7 @@ function update_extras(t, dt) {
         const spr = extras[i];
         spr.pos.x += spr.speed.x * dt;
         spr.pos.y += spr.speed.y * dt;
-        if (spr.type != 'heart.png') {
+        if (spr.type != 'heart.png' && spr.type != 'mushroom.png' && spr.type != 'mushroom2.png') {
             spr.speed.y += GRAVITY * dt;
         }
         if (spr.type == 'coin') {
@@ -527,11 +555,37 @@ function update_extras(t, dt) {
                     spr.speed.set(0, 0);
                 }
             }
+
+        }
+        if (spr.type == 'mushroom2.png') {
+            const hit_left = get_map_at(new Vec(spr.pos.x + 1, spr.pos.y + TILE2));
+            const hit_right = get_map_at(new Vec(spr.pos.x + TILE - 1, spr.pos.y + TILE2));
+            const hit_bottom_left = get_map_at(new Vec(spr.pos.x + 1, spr.pos.y + TILE));
+            const hit_bottom_right = get_map_at(new Vec(spr.pos.x + TILE - 1, spr.pos.y + TILE));
+
+            if (!is_sky(hit_left) || !is_sky(hit_right) || spr.pos.x < 1) {
+                spr.speed.x *= -1;
+                spr.pos.x += spr.speed.x * dt;
+            }
+
+            if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right)) {
+                spr.pos.y += 100 * dt;
+            }
+        }
+
+        if (spr.type == 'coin' || spr.type == 'mushroom2.png') {
             const distance = spr.pos.distance(player.pos);
             if (distance < TILE && player.wants_to_pick) {
                 pick(spr);
                 remove_me = true;
             }
+        }
+
+        spr.time += dt;
+
+        if (spr.type == 'mushroom.png' && spr.time > 1.75) {
+            remove_me = true;
+            add_extra('mushroom2.png', spr.pos.x, spr.pos.y, 50, 0);
         }
 
         if (spr.life !== undefined) {
@@ -557,11 +611,13 @@ function draw_extras() {
         const spr = extras[i];
         const x = floor(spr.pos.x - scroll * TILE);
         const y = floor(spr.pos.y);
+        const ox = floor(spr.orig_pos.x - scroll * TILE);
+        const oy = floor(spr.orig_pos.y);
+
         if (check_inside_screen(x, y)) {
-            if (spr.type.indexOf('.png') == -1) {
-                canvas.draw_sprite(spr.type, x, y);
-            } else {
-                canvas.draw_image(spr.type, x, y);
+            draw(spr.type, x, y);
+            if (spr.type == 'mushroom.png') {
+                draw('block_q_dead.png', ox, oy);
             }
         }
     }
@@ -591,6 +647,7 @@ function loop(t, dt) {
     } else {
         scroll = 0;
     }
+
     draw_map();
     draw_enemies();
     draw_extras();
