@@ -266,15 +266,6 @@ function restart(t) {
         dead: false,
     };
 
-    let want_pool = [
-        'mushroom2.png',
-        'mushroom2.png',
-        'mushroom2.png',
-        'mushroom2.png',
-        'mushroom2.png',
-        'mushroom2.png',
-    ];
-
     extras = [];
     enemies = [];
     for (let i = 0; i < map_items.length; i++) {
@@ -286,7 +277,7 @@ function restart(t) {
                     pos: item.pos,
                     speed: -GOOMBA_SPEED,
                     alive: true,
-                    wants: rnd() < 0.5 ? 'mushroom2.png' : 'coin',
+                    wants: rnd() < 0.2 ? 'mushroom2.png' : 'coin',
                     show_wants: false,
                 });
                 break;
