@@ -319,7 +319,7 @@ function hit_block(block) {
         player.block_time = BRICK_SHAKE_TIME;
         player.points += 50;
         add_extra('coin', block.x * TILE, block.y * TILE, Math.random() * 300 - 150, -(200 + Math.random() * 100));
-        if (rnd() < 0.2) {
+        if (rnd() < 0.1) {
             map[block.x][block.y] = 99;
         }
         sounds['coin_pick'].play();
