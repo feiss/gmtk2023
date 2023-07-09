@@ -291,11 +291,7 @@ function restart(t) {
 function keydown(key) {
     if (key == ' ') {
         if (gameover) {
-            try {
-                sounds['song'].fastSeek(0);
-            } catch (e) {
-                sounds['song'].currentTime = 0;
-            }
+            sounds['song'].currentTime = 0;
             sounds['song'].play();
             restart();
             return;
