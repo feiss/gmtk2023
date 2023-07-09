@@ -24,9 +24,11 @@ function preload() {
     sounds['song'].loop = true;
     sounds['song'].volume = 0.0;
 
+    sounds['win'] = new Audio('assets/win.ogg');
 
     return [
         "map1-1.png",
+        "flag.png",
         "speech_coin.png",
         "speech_mushroom2.png.png",
         "pepe.png",
@@ -156,6 +158,7 @@ MAP_TILE[40] = 'pipe2.png';
 MAP_TILE[41] = 'pipe3.png';
 MAP_TILE[42] = 'pipe4.png';
 MAP_TILE[49] = 'mountain1.png';
+MAP_TILE[47] = 'flag.png';
 MAP_TILE[50] = 'bush1.png';
 
 function draw_map() {
@@ -169,7 +172,6 @@ function draw_map() {
             offset.y = 0;
             const xx = Math.max(0, x + map_scroll);
             const img = MAP_TILE[map[xx][y]];
-
 
             if (player.block) {
                 if (player.block.x == xx && player.block.y == y && player.block_time > 0) {
@@ -226,24 +228,24 @@ const PLAYER_JUMP_SPEED = 266.0;
 const MEGAJUMP_FRAME_CHECK = 11;
 const GRAVITY = 1200;
 
-const GOOMBA_SPEED = 10.0;
+const GOOMBA_SPEED = 30.0;
 const BRICK_SHAKE_TIME = 8;
 
 let player, enemies, extras;
-
+let enemies_to_feed;
 
 function restart() {
 
     load_map("map1-1.png");
 
-
+    win = false;
     gameover = false;
     gameover_t = 0;
     game_speed = 1;
     gameover_msg = "GAME OVER";
 
     player = {
-        pos: new Vec(110, 150),
+        pos: new Vec(100, 150),
         speed: new Vec(0, 0),
         on_air: false,
         look_right: true,
@@ -253,6 +255,7 @@ function restart() {
         points: 0,
         wants_to_pick: false,
         inventory: null,
+        dead: false,
     };
 
     extras = [];
@@ -271,9 +274,9 @@ function restart() {
                 });
                 break;
         }
-
     }
 
+    enemies_to_feed = enemies.length;
 }
 
 
@@ -282,6 +285,7 @@ function keydown(key) {
         if (gameover) {
             sounds['song'].fastSeek(0);
             sounds['song'].play();
+            console.log(win, gameover);
             restart();
             return;
         }
@@ -430,7 +434,7 @@ function draw_player(dt) {
     const flip = !player.look_right;
 
 
-    if (gameover) {
+    if (player.dead) {
         draw('pepe_dead.png', x, y);
         return;
     }
@@ -491,8 +495,11 @@ function update_enemies(t, dt) {
                 if (abs(enemy.pos.y - player.pos.y) > abs(enemy.pos.x - player.pos.x)) {
                     enemy.alive = false;
                     player.speed.y = -PLAYER_JUMP_SPEED * 0.75;
+                    // gameover_msg="YOU NEED TO TAKE CARE OF THEM!"
+                    game_over(t);
                 } else {
                     if (distance < TILE * 0.8) {
+                        player.dead = true;
                         game_over(t);
                     }
                 }
@@ -504,6 +511,7 @@ function update_enemies(t, dt) {
                 if (distance < TILE) {
                     player.points += 200;
                     if (extra.type == enemy.wants) {
+                        enemies_to_feed--;
                         enemy.wants = null;
                         enemy.speed *= -1;
                         add_extra('heart.png', enemy.pos.x - TILE2, enemy.pos.y - TILE * 1.5, 0, -50, 1);
@@ -606,22 +614,6 @@ function update_extras(t, dt) {
             }
 
         }
-        // if (spr.type == 'mushroom2.png') {
-        //     const hit_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y - TILE2));
-        //     const hit_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y - TILE2));
-        //     const hit_bottom_left = get_map_at(new Vec(spr.pos.x - TILE2 + 1, spr.pos.y));
-        //     const hit_bottom_right = get_map_at(new Vec(spr.pos.x + TILE2 - 1, spr.pos.y));
-
-        //     if (!is_sky(hit_left) || !is_sky(hit_right) || spr.pos.x < 1) {
-        //         spr.speed.x *= -1;
-        //         spr.pos.x += spr.speed.x * dt;
-        //     }
-
-        //     if (is_sky(hit_bottom_left) && is_sky(hit_bottom_right)) {
-        //         spr.pos.y += 100 * dt;
-        //         console.log('falling', spr.pos.y);
-        //     }
-        // }
 
         if (spr.type == 'coin' || spr.type == 'mushroom2.png') {
             const distance = spr.pos.distance(player.pos);
@@ -677,9 +669,14 @@ function draw_extras() {
     }
 }
 
+let win = false;
+
 function loop(t, dt) {
     dt = dt * game_speed;
 
+    if (win) {
+        return;
+    }
     if (gameover) {
         return loop_gameover(t, dt);
     }
@@ -709,6 +706,26 @@ function loop(t, dt) {
 
     if (player.pos.y > H + 30) {
         game_over(t);
+    }
+
+    if (player.pos.x > 3170 && enemies_to_feed <= 0) {
+        win = true;
+        sounds['song'].pause();
+        sounds['win'].play();
+        gameover = true;
+        gameover_t = t;
+        canvas.ctx.globalAlpha = 0.7;
+        canvas.ctx.fillStyle = '#000';
+        canvas.ctx.fillRect(0, 0, W, H);
+        canvas.ctx.globalAlpha = 1.0;
+        canvas.draw_text('WEEE, YOU MADE IT!!', W / 2, H / 2 - 20, 2, 'center');
+        canvas.draw_text("SORRY, NO TIME TO ADD MORE LEVELS..", W / 2, H / 2, 2, 'center');
+
+        canvas.draw_text("...BUT YOU CAN IMAGINE ", W / 2, H / 2 + 20, 2, 'center');
+        canvas.draw_text("HOW IT WOULD CONTINUE ;) ", W / 2, H / 2 + 30, 2, 'center');
+
+        canvas.draw_text("- PRESS SPACE TO PLAY AGAIN- ", W / 2, H / 2 + 70, 2, 'center');
+        return;
     }
 
     // debug
